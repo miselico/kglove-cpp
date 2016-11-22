@@ -198,9 +198,74 @@ void buildGraph(TStr filename) {
 
 }
 
+//TPt<TNodeEdgeNet<PO, TFlt> >
+void buildSimpleGraph(TStr filename) {
+
+//The graph
+	TPt<TNodeEdgeNet<TStr, TStr> > Net = TNodeEdgeNet<TStr, TStr>::New();
+
+//temporary keep track of all the nodes
+	THash<TStr, int> addedNodes = THash<TStr, int>();
+
+	PSIn FInPt = TFIn::New(filename);
+	TStr line;
+	int count = 0;
+
+	THashSet<TStr> stringpool = THashSet<TStr>();
+
+	while (FInPt->GetNextLn(line)) {
+		TTriple<TStr, TStr, TStr> values = parsetripleLine(line, stringpool);
+		int subjectIndex;
+		if (addedNodes.IsKeyGetDat(values.Val1, subjectIndex)) {
+			//nothing, subjectIndex now contains the node ID
+		} else {
+			//add new Node, save index
+			subjectIndex = Net->AddNode(-1, values.Val1);
+			addedNodes.AddDat(values.Val1, subjectIndex);
+		}
+
+		int objectIndex;
+		if (addedNodes.IsKeyGetDat(values.Val3, objectIndex)) {
+			//nothing, objectIndex now contains the node ID
+		} else {
+			//add new Node, save index
+			objectIndex = Net->AddNode(-1, values.Val3);
+			addedNodes.AddDat(values.Val3, objectIndex);
+		}
+
+		//add edge
+
+		//Net->AddEdge(subjectIndex, objectIndex, -1, values.Val2);
+
+		count++;
+		if (count % 100000 == 0) {
+			cout << "Processed " << count << " lines" << endl;
+		}
+	}
+
+	stringpool.Clr(true, -1);
+
+//	cout << Net->BegNI().GetDat().CStr() << endl;
+//
+//
+//	for (TNodeEdgeNet<TStr, TStr>::TNodeI NI = Net->BegNI(); NI < Net->EndNI(); NI++) {
+//		for(int i = 0; i < NI.GetOutDeg(); i++){
+//			TStr outedge = NI.GetOutEDat(i);
+//			cout << outedge.CStr();
+//		}
+//		//printf("node id %d P:%s O:%s with out-degree %d and in-degree %d\n", NI.GetId(), NI.GetDat().P.CStr(), NI.GetDat().O.CStr(), NI.GetOutDeg(), NI.GetInDeg());
+//	}
+//
+//	int a;
+//	cin >> a;
+
+//PNGraph Graph = TSnap::LoadEdgeList<PNGraph>(InFNm);
+
+}
+
 int main() {
 
-	buildGraph("wikidata-simple-statements-10_000000-sample.nt");
+	buildSimpleGraph("wikidata-simple-statements-10_000000-sample.nt");
 
 	//buildGraph("sample-wikidata-terms-fragment.nt");
 
