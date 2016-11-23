@@ -10,6 +10,8 @@
 
 #include "Snap.h"
 
+#include "MurmurHash3.h"
+
 using namespace std;
 
 class MyTNodeData {
@@ -263,7 +265,38 @@ void buildSimpleGraph(TStr filename) {
 
 }
 
+const int MURMURSEED = 65765745;
+
+const char base16[] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E' , 'F'};
+
+TStr myhash(TStr in) {
+	char* cstr = in.CStr();
+	int len = in.Len();
+	unsigned char* val = (unsigned char*) malloc(16);
+	MurmurHash3_x86_128(cstr, len, MURMURSEED, val);
+	char* stringVal = (char*) malloc(32 + 1);
+	for (int i = 0; i < 16; ++i) {
+		unsigned char c = val[i];
+		unsigned char c1_index = c >> 4;
+		unsigned char c2_index = c & 15;
+		char c1 = base16[c1_index];
+		char c2 = base16[c2_index];
+		stringVal[2 * i] = c1;
+		stringVal[2 * i + 1] = c2;
+	}
+	stringVal[32] = 0;
+	return TStr(stringVal);
+}
+
 int main() {
+	for (int var = 0; var < 100; ++var) {
+		TStr v = myhash("test");
+
+		cout << v.CStr() << endl;
+
+	}
+
+	return 0;
 
 	buildSimpleGraph("wikidata-simple-statements-10_000000-sample.nt");
 
