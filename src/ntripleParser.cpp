@@ -36,7 +36,7 @@ TPair<TStr, TStr> parseSubjectOf(TStr line) {
 	}
 	//otherwise it is a resource
 	line = line.RightOf('<');
-	TStr S = line.LeftOf('>');
+	TStr S = "<" + line.LeftOf('>') + ">";
 	return TPair<TStr, TStr>(S, line.RightOf('>'));
 }
 
@@ -53,7 +53,7 @@ TStr parseObject(TStr line) {
 		return parseBlankNodeOf(line).Val1;
 	} else if (line.GetCh(0) == '<') {
 		line = line.RightOf('<');
-		return line.LeftOf('>');
+		return "<" + line.LeftOf('>') + ">";
 	} else if (line.GetCh(0) == '"') {
 		//literal
 		if (DEBUGMODE && ((line.SearchStr("^^", 0) != -1) || (line.SearchStr("@", 0) != -1))) {
@@ -73,9 +73,7 @@ TStr parseObject(TStr line) {
 
 }
 
-
-
-Triple parsetripleLine(TStr line, THashSet<TStr> & Stringpool) {
+Triple parsetripleLine(TStr line) {
 	//line = <http://www.wikidata.org/ontology#gcPrecision> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#DatatypeProperty> .
 	//line = _:node1ap4j3o3kx4 <http://example.com> <http://example.com#hasname> "Test"
 
@@ -86,14 +84,12 @@ Triple parsetripleLine(TStr line, THashSet<TStr> & Stringpool) {
 	//predicate is easy
 	line = S_rest.Val2.RightOf('<');
 	TStr P = line.LeftOf('>');
+	P = "<" + P + ">";
 	line = line.RightOf('>');
 
 	TStr O = parseObject(line);
 
-	//This saves about 10% memory on a small test. Perhaps more on a larger one.
-	S = Stringpool.GetKey(Stringpool.AddKey(S));
-	P = Stringpool.GetKey(Stringpool.AddKey(P));
-	O = Stringpool.GetKey(Stringpool.AddKey(O));
+
 
 	return Triple(S, P, O);
 }

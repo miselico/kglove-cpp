@@ -29,6 +29,6 @@ public:
 
 };
 
-Triple parsetripleLine(TStr line, THashSet<TStr> & Stringpool);
+Triple parsetripleLine(TStr line);
 
 #endif /* NTRIPLEPARSER_H_ */

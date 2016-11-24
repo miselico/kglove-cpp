@@ -50,12 +50,15 @@ TPt<TNodeEdgeNet<TStr, TStr> > buildRDFGraph(TStr filename) {
 	PSIn FInPt = TFIn::New(filename);
 	TStr line;
 	int count = 0;
-
+//To reuse the strings in the node/edge labels
 	THashSet<TStr> stringpool = THashSet<TStr>();
 
 	while (FInPt->GetNextLn(line)) {
-		Triple values = parsetripleLine(line, stringpool);
-		int subjectIndex;
+		Triple values = parsetripleLine(line);
+		//This saves about 10% memory on a small test. Perhaps more on a larger one.
+		values = Triple(stringpool.GetKey(stringpool.AddKey(values.S())), stringpool.GetKey(stringpool.AddKey(values.P())), stringpool.GetKey(stringpool.AddKey(values.O())));
+
+		int subjectIndex = 0;
 		if (addedNodes.IsKeyGetDat(values.S(), subjectIndex)) {
 			//nothing, subjectIndex now contains the node ID
 		} else {
@@ -64,7 +67,7 @@ TPt<TNodeEdgeNet<TStr, TStr> > buildRDFGraph(TStr filename) {
 			addedNodes.AddDat(values.S(), subjectIndex);
 		}
 
-		int objectIndex;
+		int objectIndex = 0;
 		if (addedNodes.IsKeyGetDat(values.O(), objectIndex)) {
 			//nothing, objectIndex now contains the node ID
 		} else {
