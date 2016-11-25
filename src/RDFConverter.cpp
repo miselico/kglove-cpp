@@ -6,40 +6,11 @@
 // Description : Hello World in C++, Ansi-style
 //============================================================================
 
-#include <iostream>
-
-#include "Snap.h"
-
-#include "MurmurHashAdditions.h"
-
-#include "doublePriorityQueue.h"
-
-#include "nTripleParser.h"
+#include "RDFConverter.h"
 
 using namespace std;
 
-class WeightedPredicate: public TPair<TStr, TLFlt> {
-
-public:
-	WeightedPredicate() :
-			TPair() {
-	}
-
-	WeightedPredicate(TStr predicate, double weight = 1.0) :
-			TPair(predicate, weight) {
-	}
-
-	TStr P() {
-		return this->Val1;
-	}
-
-	long double W() {
-		return this->Val2.Val;
-	}
-
-};
-
-TPt<TNodeEdgeNet<TStr, TStr> > buildRDFGraph(TStr filename) {
+TPair<TPt<TNodeEdgeNet<TStr, TStr> >, THash<TStr, int> > buildRDFGraph(TStr filename) {
 
 //The graph
 	TPt<TNodeEdgeNet<TStr, TStr> > Net = TNodeEdgeNet<TStr, TStr>::New();
@@ -76,7 +47,7 @@ TPt<TNodeEdgeNet<TStr, TStr> > buildRDFGraph(TStr filename) {
 			addedNodes.AddDat(values.O(), objectIndex);
 		}
 		//add edge
-		Net->AddEdge(subjectIndex, objectIndex, -1, values.O());
+		Net->AddEdge(subjectIndex, objectIndex, -1, values.P());
 
 		count++;
 		if (count % 100000 == 0) {
@@ -86,7 +57,7 @@ TPt<TNodeEdgeNet<TStr, TStr> > buildRDFGraph(TStr filename) {
 
 	stringpool.Clr(true, -1);
 
-	return Net;
+	return TPair<TPt<TNodeEdgeNet<TStr, TStr> >, THash<TStr, int> >(Net, addedNodes);
 }
 
 // weighing strategies
@@ -100,103 +71,158 @@ TPt<TNodeEdgeNet<TStr, WeightedPredicate> > uniformWeigher(TPt<TNodeEdgeNet<TStr
 		int outDegree = baseGraph->GetNI(EI.GetSrcNId()).GetOutDeg();
 		double weight = 1.0 / (double) outDegree;
 		TStr label = EI.GetDat();
-		int ID = EI.GetId();
-		int src = EI.GetSrcNId();
+		const int ID = EI.GetId();
+		const int src = EI.GetSrcNId();
 		int dst = EI.GetDstNId();
-		newNet->AddEdge(src, dst, ID, WeightedPredicate(label, weight));
+		const WeightedPredicate pred = WeightedPredicate(label, weight);
+		newNet->AddEdge(src, dst, ID, pred);
 	}
 
 	return newNet;
 }
-//sparse vector representing the approx pagerank
-class BCV: THash<TInt, TFlt> {
-public:
-	void fixPaint(int ID, double amount) {
-		double startAmount = this->GetDatWithDefault(ID, 0.0);
-		double newAmount = startAmount + amount;
-		this->AddDat(ID, newAmount);
+
+TPt<TNodeEdgeNet<TStr, WeightedPredicate> > inverseFrequencyWeigher(TPt<TNodeEdgeNet<TStr, TStr> > baseGraph) {
+	TPt<TNodeEdgeNet<TStr, WeightedPredicate> > newNet = TNodeEdgeNet<TStr, WeightedPredicate>::New();
+	for (TNodeEdgeNet<TStr, TStr>::TNodeI NI = baseGraph->BegNI(); NI < baseGraph->EndNI(); NI++) {
+		newNet->AddNode(NI.GetId(), NI.GetDat());
 	}
 
-	string toString(const TPt<TNodeEdgeNet<TStr, WeightedPredicate> > network) {
-		string s = "{";
-		string separator = "";
-
-		for (THash<TInt, TFlt>::TIter iter = this->BegI(); iter < this->EndI(); iter++) {
-			s += separator;
-			const TInt k = iter.GetKey();
-			TStr entity = network->GetNDat(k);
-			s += entity.CStr();
-			s += " = ";
-			const TFlt v = iter.GetDat();
-			s += v.GetStr().CStr();
-			separator = ", ";
-		}
-
-		s.append("}");
-		return s;
+	//count freq of each property:
+	THash<TStr, TInt> absolute_freq = THash<TStr, TInt>();
+	for (TNodeEdgeNet<TStr, TStr>::TEdgeI EI = baseGraph->BegEI(); EI < baseGraph->EndEI(); EI++) {
+		TStr prop = EI.GetDat();
+		TInt start = 0;
+		absolute_freq.IsKeyGetDat(prop, start);
+		absolute_freq.AddDat(prop, start + 1);
 	}
-};
-
-class BCAQueue: doublePriorityQueue<TInt> {
-public:
-	void addPaintTo(int toID, double paint) {
-		double current = this->GetPriority(toID);
-		this->SetPriority(toID, current + paint);
+	//inverse all freq
+	THash<TStr, TFlt> inverse_freq = THash<TStr, TFlt>();
+	for (THash<TStr, TInt>::TIter iter = absolute_freq.BegI(); iter < absolute_freq.EndI(); iter++) {
+		inverse_freq.AddDat(iter.GetKey(), 1.0 / iter.GetDat());
 	}
 
-	bool empty() {
-		return this->IsEmpty();
-	}
+	for (TNodeEdgeNet<TStr, TStr>::TNodeI NI = baseGraph->BegNI(); NI < baseGraph->EndNI(); NI++) {
 
-	TPair<TInt, TFlt> pop() {
-		double paint = this->GetMaxPriority();
-		TInt ID = this->PopMax();
-		return TPair<TInt, TFlt>(ID, paint);
-	}
+		int node_i_outdeg = NI.GetOutDeg();
 
-};
-
-BCV computeBCA(TPt<TNodeEdgeNet<TStr, WeightedPredicate> > network, int b_ID, double alpha, double eps) {
-	BCAQueue Q = BCAQueue();
-	BCV p = BCV();
-	Q.addPaintTo(b_ID, 1.0);
-	while (!Q.empty()) {
-		TPair<TInt, TFlt> element = Q.pop();
-		int i = element.Val1;
-		double w = element.Val2;
-		p.fixPaint(i, alpha * w);
-		if (w < eps) {
-			continue;
-		}
-		TNodeEdgeNet<TStr, WeightedPredicate>::TNodeI node_i = network->GetNI(i);
-		int node_i_outdeg = node_i.GetOutDeg();
-
+		double totalWeight = 0;
 		for (int outEdge = 0; outEdge < node_i_outdeg; ++outEdge) {
-			int j = node_i.GetOutNId(outEdge);
-			double edgeWeight = node_i.GetOutEDat(outEdge).W();
-			double paintToJ = (1.0 - alpha) * w * edgeWeight;
-			Q.addPaintTo(j, paintToJ);
+			TStr edgeData = NI.GetOutEDat(outEdge);
+			totalWeight += inverse_freq.GetDat(edgeData);
 		}
-	}
-	return p;
+		double totalWeightInverse = 1.0 / totalWeight;
+		for (int outEdge = 0; outEdge < node_i_outdeg; ++outEdge) {
+			int j = NI.GetOutNId(outEdge);
+			TStr label = NI.GetOutEDat(outEdge);
+			double normalized_weight = inverse_freq.GetDat(label) * totalWeightInverse;
+			const WeightedPredicate pred = WeightedPredicate(label, normalized_weight);
+			newNet->AddEdge(NI.GetId(), j, NI.GetOutEId(outEdge), pred);
+		}
 
+	}
+
+	return newNet;
 }
 
-void computeFrequencies(TStr filename, TPt<TNodeEdgeNet<TStr, WeightedPredicate> > weighingStrategy(TPt<TNodeEdgeNet<TStr, TStr> > baseGraph)) {
-	TPt<TNodeEdgeNet<TStr, TStr> > graph = buildRDFGraph(filename);
-	TPt<TNodeEdgeNet<TStr, WeightedPredicate> > weightedGraph = weighingStrategy(graph);
-	BCV bcv = computeBCA(weightedGraph, 2, 0.50, 0.0000001);
+THash<TPair<TStr, TStr>, TInt> createPairedWordIndexTable(TPt<TNodeEdgeNet<TStr, TStr> > graph) {
+	THash<TPair<TStr, TStr>, TInt> table = THash<TPair<TStr, TStr>, TInt>();
+	int counter = 0;
+	for (TNodeEdgeNet<TStr, TStr>::TNodeI NI = graph->BegNI(); NI < graph->EndNI(); NI++) {
 
-	cout << bcv.toString(weightedGraph);
+		int node_i_outdeg = NI.GetOutDeg();
+		for (int outEdge = 0; outEdge < node_i_outdeg; ++outEdge) {
+			TStr predicate = NI.GetOutEDat(outEdge);
+			TStr object = NI.GetOutNDat(outEdge);
+			TPair<TStr, TStr> pair = TPair<TStr, TStr>(predicate, object);
+			if (!table.IsKey(pair)) {
+				table.AddDat(pair, counter);
+				counter++;
+			}
+		}
+	}
+	return table;
+}
+
+typedef double real;
+
+typedef struct cooccur_rec {
+	int word1;
+	int word2;
+	real val;
+} CREC;
+
+void computeFrequencies(TStr filename, TPt<TNodeEdgeNet<TStr, WeightedPredicate> > weighingStrategy(TPt<TNodeEdgeNet<TStr, TStr> >), FILE *fout) {
+	TPair<TPt<TNodeEdgeNet<TStr, TStr> >, THash<TStr, int> > graphAndNodeIndex = buildRDFGraph(filename);
+	TPt<TNodeEdgeNet<TStr, TStr> > graph = graphAndNodeIndex.Val1;
+
+	THash<TStr, int> wordIndexTable = graphAndNodeIndex.Val2;
+
+	THash<TPair<TStr, TStr>, TInt> pairwordIndexTable = createPairedWordIndexTable(graph);
+	TPt<TNodeEdgeNet<TStr, WeightedPredicate> > weightedGraph = weighingStrategy(graph);
+
+	graph.Clr();
+
+	cout << "done weighing" << endl;
+
+	cerr << "TODO : check - does the indexing for glove have to start from 1 or 0 ??"
+	for (int i = 0; i < weightedGraph->GetNodes(); ++i) {
+		if (weightedGraph->GetNDat(i).SearchCh('<') != 0) {
+			continue;
+		}
+		PBCV bcv = computePBCA(weightedGraph, i, 0.10, 0.000001);
+		int subjectIndex = wordIndexTable.GetDat(weightedGraph->GetNDat(i));
+		for (THash<TPair<TInt, TInt>, TFlt>::TIter iter = bcv.BegI(); iter < bcv.EndI(); iter++) {
+			WeightedPredicate wpred = weightedGraph->GetEDat(iter.GetKey().Val1);
+			TStr pred = wpred.P();
+			TStr obj = weightedGraph->GetNDat(iter.GetKey().Val2);
+			int offset = wordIndexTable.Len();
+			int pairIndex = pairwordIndexTable.GetDat(TPair<TStr, TStr>(pred, obj)) + offset;
+			double freq = iter.GetDat();
+
+			CREC crec = CREC { word1:subjectIndex, word2:pairIndex, val: freq };
+			fwrite(&crec, sizeof(CREC), 1, fout);
+
+			cout << subjectIndex << " has " << pairIndex << " freq " << freq << endl;
+		}
+	}
+
+	fclose(fout);
+//	TTmStopWatch w = TTmStopWatch(true);
+//	int needed = 10000;
+//	int * selected = (int*) malloc(needed * sizeof(int));
+//	int skipped = 0;
+//	for (int i = 0; i < needed + skipped && i < weightedGraph->GetNodes(); ++i) {
+//		if (weightedGraph->GetNDat(i).SearchCh('<') != 0) {
+//			++skipped;
+//			continue;
+//		} else {
+//			selected[i - skipped] = i;
+//		}
+//	}
+//	for (int index = 0; index < needed && index < weightedGraph->GetNodes(); index++) {
+//		int id = selected[index];
+//		PBCV bcv = computePBCA(weightedGraph, id, 0.10, 0.000000000001);
+//		//cout << bcv.toString(weightedGraph) << endl;
+//		if (index % 1000 == 0) {
+//			cout << "another 1000" << weightedGraph->GetNDat(id).CStr() << "->" << bcv.toString(weightedGraph) << endl;
+//		}
+//	}
+//
+//	w.Stop();
+//	cout << w.GetMSecInt() << "ms" << endl;
 	return;
 }
 
 int main() {
-	//TStr file = "wikidata-simple-statements-1_000000-sample.nt";
-	TStr file = "sample-wikidata-terms-fragment.nt";
-	//TStr file = "sample-wikidata-terms.nt";
 
-	computeFrequencies(file, uniformWeigher);
+	//TStr file = "wikidata-simple-statements-1_000000-sample.nt";
+//TStr file = "sample-wikidata-terms-fragment.nt";
+//TStr file = "sample-wikidata-terms.nt";
+	TStr file = "SmallTest3.nt";
+
+	char* outfile = "frequencies_output.bin";
+
+	computeFrequencies(file, inverseFrequencyWeigher, fopen(outfile,"w"));
 
 	return 0;
 }

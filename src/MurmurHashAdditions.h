@@ -15,7 +15,7 @@ const int MURMURSEED = 65765745;
 
 const char base16[] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F' };
 
-TStr myhash(TStr in) {
+inline TStr myhash(TStr in) {
 	char* cstr = in.CStr();
 	int len = in.Len();
 	unsigned char* val = (unsigned char*) malloc(16);
