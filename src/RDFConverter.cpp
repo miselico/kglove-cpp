@@ -223,6 +223,8 @@ TPt<TNodeEdgeNet<TStr, WeightedPredicate> > buildWalkableGraph(TStr filename, TP
 
 void simpleWalk(TStr filename, TPt<TNodeEdgeNet<TStr, WeightedPredicate> > weighingStrategy(TPt<TNodeEdgeNet<TStr, TStr> >), FILE *fout) {
 	TPt<TNodeEdgeNet<TStr, WeightedPredicate> > graph = buildWalkableGraph(filename, weighingStrategy);
+
+	TTmStopWatch w = TTmStopWatch(true);
 	//these should come as parameters:
 	int length = 8;
 	int amount = 10E6;
@@ -266,6 +268,8 @@ void simpleWalk(TStr filename, TPt<TNodeEdgeNet<TStr, WeightedPredicate> > weigh
 		fwrite("\n", sizeof(char), 1, fout);
 
 	}
+	w.Stop();
+	cout << w.GetMSecInt() << "ms for " << amount << " random walks of length " << length << endl;
 
 }
 
