@@ -8,12 +8,10 @@
 #ifndef BCA_H_
 #define BCA_H_
 
-#include <iostream>
 
 #include "Snap.h"
 
-#include "doublePriorityQueue.h"
-#include "RDFConverter.h"
+#include "WeightedPredicate.h"
 #include <string>
 
 using namespace std;

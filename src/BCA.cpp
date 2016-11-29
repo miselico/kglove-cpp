@@ -6,8 +6,13 @@
  */
 
 #include "BCA.h"
+#include "doublePriorityQueue.h"
+
+
 
 using namespace std;
+
+
 
 void BCV::fixPaint(int ID, double amount) {
 	double startAmount = this->GetDatWithDefault(ID, 0.0);

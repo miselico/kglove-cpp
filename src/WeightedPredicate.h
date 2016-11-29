@@ -1,17 +1,14 @@
 /*
- * RDFConverter.h
+ * WeightedPredicate.h
  *
- *  Created on: Nov 24, 2016
+ *  Created on: Nov 29, 2016
  *      Author: cochez
  */
 
-#ifndef RDFCONVERTER_H_
-#define RDFCONVERTER_H_
+#ifndef WEIGHTEDPREDICATE_H_
+#define WEIGHTEDPREDICATE_H_
 
-#include <iostream>
 #include "Snap.h"
-
-using namespace std;
 
 class WeightedPredicate: public TPair<TStr, TLFlt> {
 
@@ -34,12 +31,4 @@ public:
 
 };
 
-
-#include "MurmurHashAdditions.h"
-#include "doublePriorityQueue.h"
-#include "nTripleParser.h"
-#include "BCA.h"
-
-
-
-#endif /* RDFCONVERTER_H_ */
+#endif /* WEIGHTEDPREDICATE_H_ */

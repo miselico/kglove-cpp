@@ -13,6 +13,28 @@ namespace {
 
 bool DEBUGMODE = false;
 
+
+
+class Triple: public TTriple<TStr, TStr, TStr> {
+public:
+	Triple(TStr S, TStr P, TStr O) :
+			TTriple(S, P, O) {
+	}
+
+	TStr S() {
+		return this->Val1;
+	}
+	TStr P() {
+		return this->Val2;
+	}
+	TStr O() {
+		return this->Val3;
+	}
+
+};
+
+
+
 // A blank node is at the start of this line, parses it of and returns the remaining of the line.
 TPair<TStr, TStr> parseBlankNodeOf(TStr line) {
 	int firstUnderScoreColon = line.SearchStr("_:", 0);
@@ -92,5 +114,55 @@ Triple parsetripleLine(TStr line) {
 
 
 	return Triple(S, P, O);
+}
+
+TPair<TPt<TNodeEdgeNet<TStr, TStr> >, THash<TStr, int> > buildRDFGraph(TStr filename) {
+
+//The graph
+	TPt<TNodeEdgeNet<TStr, TStr> > Net = TNodeEdgeNet<TStr, TStr>::New();
+
+//temporary keep track of all the nodes
+	THash<TStr, int> addedNodes = THash<TStr, int>();
+
+	PSIn FInPt = TFIn::New(filename);
+	TStr line;
+	int count = 0;
+//To reuse the strings in the node/edge labels
+	THashSet<TStr> stringpool = THashSet<TStr>();
+
+	while (FInPt->GetNextLn(line)) {
+		Triple values = parsetripleLine(line);
+		//This saves about 10% memory on a small test. Perhaps more on a larger one.
+		values = Triple(stringpool.GetKey(stringpool.AddKey(values.S())), stringpool.GetKey(stringpool.AddKey(values.P())), stringpool.GetKey(stringpool.AddKey(values.O())));
+
+		int subjectIndex = 0;
+		if (addedNodes.IsKeyGetDat(values.S(), subjectIndex)) {
+			//nothing, subjectIndex now contains the node ID
+		} else {
+			//add new Node, save index
+			subjectIndex = Net->AddNode(-1, values.S());
+			addedNodes.AddDat(values.S(), subjectIndex);
+		}
+
+		int objectIndex = 0;
+		if (addedNodes.IsKeyGetDat(values.O(), objectIndex)) {
+			//nothing, objectIndex now contains the node ID
+		} else {
+			//add new Node, save index
+			objectIndex = Net->AddNode(-1, values.O());
+			addedNodes.AddDat(values.O(), objectIndex);
+		}
+		//add edge
+		Net->AddEdge(subjectIndex, objectIndex, -1, values.P());
+
+		count++;
+		if (count % 100000 == 0) {
+			cout << "Processed " << count << " lines" << endl;
+		}
+	}
+
+	stringpool.Clr(true, -1);
+
+	return TPair<TPt<TNodeEdgeNet<TStr, TStr> >, THash<TStr, int> >(Net, addedNodes);
 }
 
