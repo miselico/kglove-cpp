@@ -164,7 +164,7 @@ void computeFrequencies(TStr filename, TPt<TNodeEdgeNet<TStr, WeightedPredicate>
 
 	cout << "done weighing" << endl;
 
-	cerr << "TODO : check - does the indexing for glove have to start from 1 or 0 ??"
+	cerr << "TODO : check - does the indexing for glove have to start from 1 or 0 ??";
 	for (int i = 0; i < weightedGraph->GetNodes(); ++i) {
 		if (weightedGraph->GetNDat(i).SearchCh('<') != 0) {
 			continue;
@@ -213,16 +213,78 @@ void computeFrequencies(TStr filename, TPt<TNodeEdgeNet<TStr, WeightedPredicate>
 	return;
 }
 
+TPt<TNodeEdgeNet<TStr, WeightedPredicate> > buildWalkableGraph(TStr filename, TPt<TNodeEdgeNet<TStr, WeightedPredicate> > weighingStrategy(TPt<TNodeEdgeNet<TStr, TStr> >)) {
+	TPt<TNodeEdgeNet<TStr, TStr> > graph;
+	TPair<TPt<TNodeEdgeNet<TStr, TStr> >, THash<TStr, int> > graphAndNodeIndex = buildRDFGraph(filename);
+	graph = graphAndNodeIndex.Val1;
+	TPt<TNodeEdgeNet<TStr, WeightedPredicate> > weightedGraph = weighingStrategy(graph);
+	return weightedGraph;
+}
+
+void simpleWalk(TStr filename, TPt<TNodeEdgeNet<TStr, WeightedPredicate> > weighingStrategy(TPt<TNodeEdgeNet<TStr, TStr> >), FILE *fout) {
+	TPt<TNodeEdgeNet<TStr, WeightedPredicate> > graph = buildWalkableGraph(filename, weighingStrategy);
+	//these should come as parameters:
+	int length = 8;
+	int amount = 10E6;
+	int seed = 45645;
+	TRnd rnd = TRnd(seed);
+	for (int i = 0; i < amount; ++i) {
+		TNodeEdgeNet<TStr, WeightedPredicate>::TNodeI previousnode = graph->GetRndNI(rnd);
+		TVec<TStr> path = TVec<TStr>();
+		path.Add(previousnode.GetDat());
+		for (int j = 0; j < length; ++j) {
+			//select random neighbour taking into account the weights
+			double d = rnd.GetUniDev();
+
+			int outdegree = previousnode.GetOutDeg();
+			if (outdegree < 1) {
+				//FIXME handle end of walk? now just outputting shorter walk.
+				break;
+			}
+			for (int k = 0; k < outdegree; k++) {
+				WeightedPredicate edgedata = previousnode.GetOutEDat(k);
+				if (edgedata.W() > d) {
+					//selected
+					path.Add(edgedata.P());
+					//make step in the walk  and get label of O
+					previousnode = graph->GetNI(previousnode.GetOutNId(k));
+					path.Add(previousnode.GetDat());
+					break;
+				} else {
+					d = d - edgedata.W();
+				}
+
+			}
+		}
+		int sepCount = 0;
+		for (int partNr = 0; partNr < path.Len(); partNr++) {
+			fwrite(" ", sizeof(char), sepCount, fout);
+			sepCount = 1;
+			TStr thePart = path[partNr];
+			fwrite(thePart.CStr(), sizeof(char), thePart.Len(), fout);
+		}
+		fwrite("\n", sizeof(char), 1, fout);
+
+	}
+
+}
+
 int main() {
 
-	//TStr file = "wikidata-simple-statements-1_000000-sample.nt";
+	TStr file = "wikidata-simple-statements-1_000000-sample.nt";
 //TStr file = "sample-wikidata-terms-fragment.nt";
 //TStr file = "sample-wikidata-terms.nt";
-	TStr file = "SmallTest3.nt";
+	//TStr file = "SmallTest3.nt";
 
-	char* outfile = "frequencies_output.bin";
+	//char* outfile = "frequencies_output.bin";
 
-	computeFrequencies(file, inverseFrequencyWeigher, fopen(outfile,"w"));
+//	computeFrequencies(file, inverseFrequencyWeigher, fopen(outfile, "w"));
+
+	char* walksoutfile = "walks";
+
+	FILE* f = fopen(walksoutfile, "w");
+	simpleWalk(file, inverseFrequencyWeigher, f);
+	fclose(f);
 
 	return 0;
 }
