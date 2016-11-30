@@ -21,7 +21,7 @@ TPt<TNodeEdgeNet<TStr, WeightedPredicate> > UniformWeigher::weigh(TPt<TNodeEdgeN
 		const int ID = EI.GetId();
 		const int src = EI.GetSrcNId();
 		int dst = EI.GetDstNId();
-		const WeightedPredicate pred = WeightedPredicate(label, weight);
+		const WeightedPredicate pred (label, weight);
 		newNet->AddEdge(src, dst, ID, pred);
 	}
 
@@ -43,7 +43,7 @@ TPt<TNodeEdgeNet<TStr, WeightedPredicate> > InverseFrequencyWeigher::weigh(TPt<T
 		absolute_freq.AddDat(prop, start + 1);
 	}
 	//inverse all freq
-	THash<TStr, TFlt> inverse_freq = THash<TStr, TFlt>();
+	THash<TStr, TFlt> inverse_freq;
 	for (THash<TStr, TInt>::TIter iter = absolute_freq.BegI(); iter < absolute_freq.EndI(); iter++) {
 		inverse_freq.AddDat(iter.GetKey(), 1.0 / iter.GetDat());
 	}
@@ -62,7 +62,7 @@ TPt<TNodeEdgeNet<TStr, WeightedPredicate> > InverseFrequencyWeigher::weigh(TPt<T
 			int j = NI.GetOutNId(outEdge);
 			TStr label = NI.GetOutEDat(outEdge);
 			double normalized_weight = inverse_freq.GetDat(label) * totalWeightInverse;
-			const WeightedPredicate pred = WeightedPredicate(label, normalized_weight);
+			const WeightedPredicate pred (label, normalized_weight);
 			newNet->AddEdge(NI.GetId(), j, NI.GetOutEId(outEdge), pred);
 		}
 

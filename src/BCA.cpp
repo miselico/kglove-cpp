@@ -67,8 +67,8 @@ public:
 };
 
 BCV computeBCA(TPt<TNodeEdgeNet<TStr, WeightedPredicate> > network, int b_ID, double alpha, double eps) {
-	BCAQueue Q = BCAQueue();
-	BCV p = BCV();
+	BCAQueue Q;
+	BCV p;
 	Q.addPaintTo(b_ID, 1.0);
 	while (!Q.empty()) {
 		TPair<TInt, TFlt> element = Q.pop();
@@ -132,8 +132,8 @@ PBCV computePBCA(TPt<TNodeEdgeNet<TStr, WeightedPredicate> > network, int b_ID, 
 	//Note!! This queue contains the amount of paint which still has to be moved OUT of the nodes.
 	//Nothing of it should stay on the the node itself.
 	//This is the main confusing difference between the ordering of the algorithms.
-	PBCV p = PBCV();
-	BCAQueue Q = BCAQueue();
+	PBCV p;
+	BCAQueue Q;
 	Q.addPaintTo(b_ID, 1.0);
 	while (!Q.empty()) {
 		TPair<TInt, TFlt> element = Q.pop();

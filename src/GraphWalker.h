@@ -20,28 +20,26 @@ protected:
 	}
 
 public:
-	virtual TVec<TStr> walk(TPt<TNodeEdgeNet<TStr, WeightedPredicate> > graph) = 0;
+	virtual TVec<TStr> performWalk(TPt<TNodeEdgeNet<TStr, WeightedPredicate> > graph, TNodeEdgeNet<TStr, WeightedPredicate>::TNodeI start) = 0;
 };
 
 /**
  * Walks on the graph using the weighted edges as probabilities for following
+ *
+ * Starts each walk at a randomly chosen node
  */
 class RandomProportionalWalker: public GraphWalker {
 
 private:
 	const int walklength;
 	TRnd random;
-	TVec<TStr> tryWalk(TPt<TNodeEdgeNet<TStr, WeightedPredicate> > graph);
 public:
 
 	/**
 	 * Make a walker for given length and seed to steer rng.
 	 * Note, the current implementation is such that the walk consists of
 	 *
-	 * startnode <P1> node_1 <P2> node_2 ... <Pwalklength> node_walklength
-	 *
-	 *
-	 *
+	 * <startnode> <P1> node_1 <P2> node_2 ... <Pwalklength> node_walklength
 	 */
 	RandomProportionalWalker(int walkLength, int seed) :
 			walklength(walkLength), random(TRnd(seed)) {
@@ -49,12 +47,13 @@ public:
 
 	/**
 	 * Performs a walk on the graph. Returns the walk.
-	 * If enforceLength is true, its length will be 2*walklengtt+1.
-	 * Otherwise, it's length is at most 2*walklengtt+1
+	 *
+	 * The walk length is at most 2*walklength+1
 	 */
-	virtual TVec<TStr> walk(TPt<TNodeEdgeNet<TStr, WeightedPredicate> > graph);
+	virtual TVec<TStr> performWalk(TPt<TNodeEdgeNet<TStr, WeightedPredicate> > graph, TNodeEdgeNet<TStr, WeightedPredicate>::TNodeI startNode);
 
 };
+
 
 /*
  * Only walks of the specified length will be created. If this fail, this class will retry
@@ -70,11 +69,10 @@ public:
 	LengthEnforcingWalker(GraphWalker& actualWalker, int enforcedLength) :
 			actualWalker(actualWalker), enforcedLength(enforcedLength) {
 	}
-
-	TVec<TStr> walk(TPt<TNodeEdgeNet<TStr, WeightedPredicate> > graph) {
+	virtual TVec<TStr> performWalk(TPt<TNodeEdgeNet<TStr, WeightedPredicate> > graph, TNodeEdgeNet<TStr, WeightedPredicate>::TNodeI start) {
 		TVec<TStr> path;
 		do {
-			path = this->actualWalker.walk(graph);
+			path = this->actualWalker.performWalk(graph, start);
 		} while (path.Len() != this->enforcedLength);
 		return path;
 	}

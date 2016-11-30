@@ -7,9 +7,15 @@
 
 #include "GraphWalker.h"
 
-TVec<TStr> RandomProportionalWalker::walk(TPt<TNodeEdgeNet<TStr, WeightedPredicate> > graph) {
-	TNodeEdgeNet<TStr, WeightedPredicate>::TNodeI previousnode = graph->GetRndNI(this->random);
-	TVec<TStr> path = TVec<TStr>();
+
+
+
+
+TVec<TStr> RandomProportionalWalker::performWalk(TPt<TNodeEdgeNet<TStr, WeightedPredicate> > graph, TNodeEdgeNet<TStr, WeightedPredicate>::TNodeI start) {
+
+	TNodeEdgeNet<TStr, WeightedPredicate>::TNodeI previousnode = start;
+
+	TVec<TStr> path;
 	path.Add(previousnode.GetDat());
 	for (int j = 0; j < this->walklength; ++j) {
 		//select random neighbour taking into account the weights
@@ -34,6 +40,7 @@ TVec<TStr> RandomProportionalWalker::walk(TPt<TNodeEdgeNet<TStr, WeightedPredica
 
 		}
 	}
+
 
 	return path;
 }

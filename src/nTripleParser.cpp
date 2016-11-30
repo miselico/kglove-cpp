@@ -89,8 +89,6 @@ TStr parseObject(TStr line) {
 
 }
 
-}
-
 Triple parsetripleLine(TStr line) {
 	//line = <http://www.wikidata.org/ontology#gcPrecision> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#DatatypeProperty> .
 	//line = _:node1ap4j3o3kx4 <http://example.com> <http://example.com#hasname> "Test"
@@ -110,27 +108,39 @@ Triple parsetripleLine(TStr line) {
 	return Triple(S, P, O);
 }
 
-TPair<TPt<TNodeEdgeNet<TStr, TStr> >, THash<TStr, int> > buildRDFGraph(TStr filename) {
+TPair<TPt<TNodeEdgeNet<TStr, TStr> >, THash<TStr, int> > buildRDFGraphInternal(TStr filename, bool removeLiteral) {
 
 //The graph
 	TPt<TNodeEdgeNet<TStr, TStr> > Net = TNodeEdgeNet<TStr, TStr>::New();
 
 //temporary keep track of all the nodes
-	THash<TStr, int> addedNodes = THash<TStr, int>();
+	THash<TStr, int> addedNodes;
 
 	PSIn FInPt = TFIn::New(filename);
 	TStr line;
 	int count = 0;
 //To reuse the strings in the node/edge labels
-	THashSet<TStr> stringpool = THashSet<TStr>();
+	THashSet<TStr> stringpool;
 
 	while (FInPt->GetNextLn(line)) {
-		if (line.IsWs()){
+		count++;
+		if (count % 1000000 == 0) {
+			cout << "Processed " << count << " lines" << endl;
+		}
+		if (line.IsWs()) {
 			continue;
 		}
-		Triple values = parsetripleLine(line);
+		if (line.SearchCh('#', 0) == 0) {
+			//comment
+			continue;
+		}
+		Triple valuesnotPooled = parsetripleLine(line);
 		//This saves about 10% memory on a small test. Perhaps more on a larger one.
-		values = Triple(stringpool.GetKey(stringpool.AddKey(values.S())), stringpool.GetKey(stringpool.AddKey(values.P())), stringpool.GetKey(stringpool.AddKey(values.O())));
+		Triple values (valuesnotPooled.S(), stringpool.GetKey(stringpool.AddKey(valuesnotPooled.P())), valuesnotPooled.O());
+		if (removeLiteral && values.O().GetCh(0) == '"') {
+			//do not add this literal
+			continue;
+		}
 
 		int subjectIndex = 0;
 		bool hasEdgePossibility = true;
@@ -171,14 +181,26 @@ TPair<TPt<TNodeEdgeNet<TStr, TStr> >, THash<TStr, int> > buildRDFGraph(TStr file
 			//add edge
 			Net->AddEdge(subjectIndex, objectIndex, -1, values.P());
 		}
-		count++;
-		if (count % 100000 == 0) {
-			cout << "Processed " << count << " lines" << endl;
-		}
+
 	}
 
 	stringpool.Clr(true, -1);
 
+	addedNodes.Pack();
+
 	return TPair<TPt<TNodeEdgeNet<TStr, TStr> >, THash<TStr, int> >(Net, addedNodes);
 }
 
+}
+
+namespace n3parser {
+
+TPair<TPt<TNodeEdgeNet<TStr, TStr> >, THash<TStr, int> > buildRDFGraph(TStr filename) {
+	return buildRDFGraphInternal(filename, false);
+}
+
+TPair<TPt<TNodeEdgeNet<TStr, TStr> >, THash<TStr, int> > buildRDFGraphIgnoreLiterals(TStr filename) {
+	return buildRDFGraphInternal(filename, true);
+
+}
+}

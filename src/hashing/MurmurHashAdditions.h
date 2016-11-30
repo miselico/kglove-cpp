@@ -8,8 +8,9 @@
 #ifndef MURMURHASHADDITIONS_H_
 #define MURMURHASHADDITIONS_H_
 
-
 #include "MurmurHash3.h"
+
+#include "Snap.h"
 
 const int MURMURSEED = 65765745;
 
@@ -33,6 +34,5 @@ inline TStr myhash(TStr in) {
 	stringVal[32] = 0;
 	return TStr(stringVal);
 }
-
 
 #endif /* MURMURHASHADDITIONS_H_ */

@@ -14,7 +14,7 @@
 #include "GraphWeigher.h"
 
 THash<TPair<TStr, TStr>, TInt> createPairedWordIndexTable(TPt<TNodeEdgeNet<TStr, TStr> > graph) {
-	THash<TPair<TStr, TStr>, TInt> table = THash<TPair<TStr, TStr>, TInt>();
+	THash<TPair<TStr, TStr>, TInt> table;
 	int counter = 0;
 	for (TNodeEdgeNet<TStr, TStr>::TNodeI NI = graph->BegNI(); NI < graph->EndNI(); NI++) {
 
@@ -41,7 +41,7 @@ typedef struct cooccur_rec {
 } CREC;
 
 void computeFrequencies(TStr filename, GraphWeigher& weighingStrategy, FILE *fout) {
-	TPair<TPt<TNodeEdgeNet<TStr, TStr> >, THash<TStr, int> > graphAndNodeIndex = buildRDFGraph(filename);
+	TPair<TPt<TNodeEdgeNet<TStr, TStr> >, THash<TStr, int> > graphAndNodeIndex = n3parser::buildRDFGraph(filename);
 	TPt<TNodeEdgeNet<TStr, TStr> > graph = graphAndNodeIndex.Val1;
 
 	THash<TStr, int> wordIndexTable = graphAndNodeIndex.Val2;
@@ -75,7 +75,7 @@ void computeFrequencies(TStr filename, GraphWeigher& weighingStrategy, FILE *fou
 		}
 	}
 
-//	TTmStopWatch w = TTmStopWatch(true);
+//	TTmStopWatch w (true);
 //	int needed = 10000;
 //	int * selected = (int*) malloc(needed * sizeof(int));
 //	int skipped = 0;

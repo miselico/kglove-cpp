@@ -22,7 +22,13 @@ public:
 	virtual void consume(TVec<TStr> walk) = 0;
 };
 
-void computeWalks(TStr filename, GraphWeigher & weighingStrategy, GraphWalker& walker, int amount, WalkSink & sink);
+//removed because the particular way is different each time.
+//void computeWalks(TStr filename, GraphWeigher & weighingStrategy, GraphWalker& walker, int amount, WalkSink & sink);
+
+TPt<TNodeEdgeNet<TStr, WeightedPredicate> > buildWalkableGraph(TStr filename, GraphWeigher & weighingStrategy);
+
+TPt<TNodeEdgeNet<TStr, WeightedPredicate> > buildWalkableGraphIgnoringLiterals(TStr filename, GraphWeigher & weighingStrategy);
+
 
 class TextFileSink: public WalkSink {
 private:
