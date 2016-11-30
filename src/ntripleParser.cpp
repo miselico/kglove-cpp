@@ -13,8 +13,6 @@ namespace {
 
 bool DEBUGMODE = false;
 
-
-
 class Triple: public TTriple<TStr, TStr, TStr> {
 public:
 	Triple(TStr S, TStr P, TStr O) :
@@ -32,8 +30,6 @@ public:
 	}
 
 };
-
-
 
 // A blank node is at the start of this line, parses it of and returns the remaining of the line.
 TPair<TStr, TStr> parseBlankNodeOf(TStr line) {
@@ -111,8 +107,6 @@ Triple parsetripleLine(TStr line) {
 
 	TStr O = parseObject(line);
 
-
-
 	return Triple(S, P, O);
 }
 
@@ -136,12 +130,14 @@ TPair<TPt<TNodeEdgeNet<TStr, TStr> >, THash<TStr, int> > buildRDFGraph(TStr file
 		values = Triple(stringpool.GetKey(stringpool.AddKey(values.S())), stringpool.GetKey(stringpool.AddKey(values.P())), stringpool.GetKey(stringpool.AddKey(values.O())));
 
 		int subjectIndex = 0;
+		bool hasEdgePossibility = true;
 		if (addedNodes.IsKeyGetDat(values.S(), subjectIndex)) {
 			//nothing, subjectIndex now contains the node ID
 		} else {
 			//add new Node, save index
 			subjectIndex = Net->AddNode(-1, values.S());
 			addedNodes.AddDat(values.S(), subjectIndex);
+			hasEdgePossibility = false;
 		}
 
 		int objectIndex = 0;
@@ -151,10 +147,27 @@ TPair<TPt<TNodeEdgeNet<TStr, TStr> >, THash<TStr, int> > buildRDFGraph(TStr file
 			//add new Node, save index
 			objectIndex = Net->AddNode(-1, values.O());
 			addedNodes.AddDat(values.O(), objectIndex);
+			hasEdgePossibility = false;
 		}
-		//add edge
-		Net->AddEdge(subjectIndex, objectIndex, -1, values.P());
+		bool hasEdge = false;
+		if (hasEdgePossibility) {
+			TNodeEdgeNet<TStr, TStr>::TNodeI ni = Net->GetNI(subjectIndex);
+			for (int i = 0; i < ni.GetOutDeg(); ++i) {
+				int otherObjectindex = ni.GetOutNId(i);
+				if (otherObjectindex == objectIndex) {
+					TStr pred = ni.GetOutEDat(i);
+					if (pred == values.P()) {
+						hasEdge = true;
+						break;
+					}
+				}
+			}
+		}
+		if (!hasEdge) {
 
+			//add edge
+			Net->AddEdge(subjectIndex, objectIndex, -1, values.P());
+		}
 		count++;
 		if (count % 100000 == 0) {
 			cout << "Processed " << count << " lines" << endl;
