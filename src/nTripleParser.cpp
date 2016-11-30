@@ -125,6 +125,9 @@ TPair<TPt<TNodeEdgeNet<TStr, TStr> >, THash<TStr, int> > buildRDFGraph(TStr file
 	THashSet<TStr> stringpool = THashSet<TStr>();
 
 	while (FInPt->GetNextLn(line)) {
+		if (line.IsWs()){
+			continue;
+		}
 		Triple values = parsetripleLine(line);
 		//This saves about 10% memory on a small test. Perhaps more on a larger one.
 		values = Triple(stringpool.GetKey(stringpool.AddKey(values.S())), stringpool.GetKey(stringpool.AddKey(values.P())), stringpool.GetKey(stringpool.AddKey(values.O())));
