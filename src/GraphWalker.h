@@ -20,7 +20,7 @@ protected:
 	}
 
 public:
-	virtual TVec<TStr> performWalk(TPt<TNodeEdgeNet<TStr, WeightedPredicate> > graph, TNodeEdgeNet<TStr, WeightedPredicate>::TNodeI start) = 0;
+	virtual TVec<TStr> performWalk(TPt<TNodeEdgeNet<TStr, WeightedPredicate> > graph, const TNodeEdgeNet<TStr, WeightedPredicate>::TNodeI & start) = 0;
 };
 
 /**
@@ -50,7 +50,7 @@ public:
 	 *
 	 * The walk length is at most 2*walklength+1
 	 */
-	virtual TVec<TStr> performWalk(TPt<TNodeEdgeNet<TStr, WeightedPredicate> > graph, TNodeEdgeNet<TStr, WeightedPredicate>::TNodeI startNode);
+	virtual TVec<TStr> performWalk(TPt<TNodeEdgeNet<TStr, WeightedPredicate> > graph, const TNodeEdgeNet<TStr, WeightedPredicate>::TNodeI & startNode);
 
 };
 
@@ -69,7 +69,7 @@ public:
 	LengthEnforcingWalker(GraphWalker& actualWalker, int enforcedLength) :
 			actualWalker(actualWalker), enforcedLength(enforcedLength) {
 	}
-	virtual TVec<TStr> performWalk(TPt<TNodeEdgeNet<TStr, WeightedPredicate> > graph, TNodeEdgeNet<TStr, WeightedPredicate>::TNodeI start) {
+	virtual TVec<TStr> performWalk(TPt<TNodeEdgeNet<TStr, WeightedPredicate> > graph, const TNodeEdgeNet<TStr, WeightedPredicate>::TNodeI & start) {
 		TVec<TStr> path;
 		do {
 			path = this->actualWalker.performWalk(graph, start);

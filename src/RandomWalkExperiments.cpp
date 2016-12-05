@@ -57,8 +57,38 @@ void experiment0() {
 	fclose(f);
 }
 
-static TStr RDF_TYPE ("<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>");
-static TStr OWL_THING ("<http://www.w3.org/2002/07/owl#Thing>");
+static TStr RDF_TYPE("<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>");
+static TStr OWL_THING("<http://www.w3.org/2002/07/owl#Thing>");
+
+void walkAround(const TPt<TNodeEdgeNet<TStr, WeightedPredicate> >& graph, int walksPerNode, GraphWalker & walker, TextFileSink & sink) {
+	long sumWalkLengths = 0;
+	long generatedPaths = 0;
+	int conceptCount = 0;
+	long int nodeCount = graph->GetNodes();
+	for (int i = 0; i < nodeCount; i++) {
+		TNodeEdgeNet<TStr, WeightedPredicate>::TNodeI candidateNode = graph->GetNI(i);
+		for (int outEdgeNr = 0; outEdgeNr < candidateNode.GetOutDeg(); ++outEdgeNr) {
+			TStr predicate = candidateNode.GetOutEDat(outEdgeNr).P();
+			if (predicate == RDF_TYPE) {
+				TStr object = candidateNode.GetOutNDat(outEdgeNr);
+				if (object == OWL_THING) {
+					conceptCount++;
+					//Generate paths
+					for (int j = 0; j < walksPerNode; ++j) {
+						TVec<TStr> path = walker.performWalk(graph, candidateNode);
+						sumWalkLengths += path.Len();
+						sink.consume(path);
+						generatedPaths++;
+					}
+					//paths generated for this node
+					break;
+				}
+			}
+		}
+	}
+	cout << "Found " << conceptCount << " concepts out of " << nodeCount << " entities. Generated " << walksPerNode << " per concept, i.e., " << generatedPaths << " paths" << endl;
+	cout << "All paths generated, Average path length (total length including start node and predicates) = " << double(sumWalkLengths) / double(generatedPaths) << endl;
+}
 
 void experiment1() {
 //	* Let's start with 4 hops i.e., initial node + 4 predicates + 4 nodes.
@@ -83,43 +113,73 @@ void experiment1() {
 
 	TPt<TNodeEdgeNet<TStr, WeightedPredicate> > graph = buildWalkableGraphIgnoringLiterals(file, weigher);
 
-
-	long sumWalkLengths = 0;
-	long generatedPaths = 0;
-	int conceptCount = 0;
-	long int nodeCount = graph->GetNodes();
-	for(int i = 0; i < nodeCount; i++){
-		TNodeEdgeNet<TStr, WeightedPredicate>::TNodeI candidateNode = graph->GetNI(i);
-		for (int outEdgeNr = 0; outEdgeNr < candidateNode.GetOutDeg(); ++outEdgeNr) {
-			TStr predicate = candidateNode.GetOutEDat(outEdgeNr).P();
-			if (predicate == RDF_TYPE){
-				TStr object = candidateNode.GetOutNDat(outEdgeNr);
-				if (object == OWL_THING){
-					conceptCount++;
-					//Generate paths
-					for (int j = 0; j < walksPerNode; ++j) {
-						TVec<TStr> path = walker.performWalk(graph, candidateNode);
-						sumWalkLengths += path.Len();
-						sink.consume(path);
-						generatedPaths++;
-					}
-					//paths generated for this node
-					break;
-				}
-			}
-		}
-
-
+	walkAround(graph, walksPerNode, walker, sink);
+	if (fclose(f) == 0) {
+		cout << "file closed correctly" << endl;
+	} else {
+		cerr << "Error closing file" << endl;
+		exit(2);
 	}
-	fclose(f);
+}
 
-	cout << "Found " << conceptCount << " concepts out of " << nodeCount << " entities. Generated " << walksPerNode << " per concept, i.e., " << generatedPaths << " paths" << endl;
+THash<TStr, TFlt> readDBPediaPageRanks(TStr tsvFile) {
+	THash<TStr, TFlt> ranks;
 
-	cout << "All paths generated, Average path length (total length including start node and predicates) = " << double(sumWalkLengths) / double(generatedPaths) << endl;
+	PSIn FInPt = TFIn::New(tsvFile);
+	TStr line;
+
+	while (FInPt->GetNextLn(line)) {
+		if (line.IsWs()) {
+			continue;
+		}
+		if (line.SearchCh('#', 0) == 0) {
+			//comment
+			continue;
+		}
+		TStr resource = TStr("<") + line.LeftOf('\t') + TStr(">");
+		TFlt rank = line.RightOf('\t').GetFlt();
+
+		ranks.AddDat(resource, rank);
+	}
+
+	ranks.Pack();
+
+	return ranks;
+}
+
+void experiment2() {
+	cout << "Using experimental weights now!" << endl;
+	TStr DBpediaFile = "pagerank_smallTest_for4.tsv";
+	THash<TStr, TFlt> pr = readDBPediaPageRanks(DBpediaFile);
+
+//	TStr file = "allData.nt";
+	TStr file = "SmallTest7_owlThings.nt";
+
+	const char* walksoutfile = "walksPRBiased.txt";
+	FILE* f = fopen(walksoutfile, "w");
+	int length = 4;
+	int walksPerNode = 1000;
+	int seed = 45645;
+	RandomProportionalWalker walker(length, seed);
+	//LengthEnforcingWalker walker2 (walker, 2 * length + 1);
+	PushDownWeigher weigher(pr, 0.2);
+	TextFileSink sink(f);
+
+	cout << "Reading in data" << endl;
+
+	TPt<TNodeEdgeNet<TStr, WeightedPredicate> > graph = buildWalkableGraphIgnoringLiterals(file, weigher);
+
+	walkAround(graph, walksPerNode, walker, sink);
+	if (fclose(f) == 0) {
+		cout << "file closed correctly" << endl;
+	} else {
+		cerr << "Error closing file" << endl;
+		exit(2);
+	}
 }
 
 void performExperiments() {
-	experiment1();
+	experiment2();
 }
 
 }

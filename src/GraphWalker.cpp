@@ -11,7 +11,7 @@
 
 
 
-TVec<TStr> RandomProportionalWalker::performWalk(TPt<TNodeEdgeNet<TStr, WeightedPredicate> > graph, TNodeEdgeNet<TStr, WeightedPredicate>::TNodeI start) {
+TVec<TStr> RandomProportionalWalker::performWalk(TPt<TNodeEdgeNet<TStr, WeightedPredicate> > graph, const TNodeEdgeNet<TStr, WeightedPredicate>::TNodeI & start) {
 
 	TNodeEdgeNet<TStr, WeightedPredicate>::TNodeI previousnode = start;
 

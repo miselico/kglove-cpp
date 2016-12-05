@@ -9,7 +9,7 @@
 #include "nTripleParser.h"
 
 
-TPt<TNodeEdgeNet<TStr, WeightedPredicate> > buildWalkableGraphIgnoringLiterals(TStr filename, GraphWeigher & weighingStrategy) {
+TPt<TNodeEdgeNet<TStr, WeightedPredicate> > buildWalkableGraphIgnoringLiterals(const TStr & filename, const GraphWeigher & weighingStrategy) {
 	TPt<TNodeEdgeNet<TStr, TStr> > graph;
 	TPair<TPt<TNodeEdgeNet<TStr, TStr> >, THash<TStr, int> > graphAndNodeIndex = n3parser::buildRDFGraphIgnoreLiterals(filename);
 	graph = graphAndNodeIndex.Val1;
@@ -17,7 +17,7 @@ TPt<TNodeEdgeNet<TStr, WeightedPredicate> > buildWalkableGraphIgnoringLiterals(T
 	return weightedGraph;
 }
 
-TPt<TNodeEdgeNet<TStr, WeightedPredicate> > buildWalkableGraph(TStr filename, GraphWeigher & weighingStrategy) {
+TPt<TNodeEdgeNet<TStr, WeightedPredicate> > buildWalkableGraph(const TStr & filename, const GraphWeigher & weighingStrategy) {
 	TPt<TNodeEdgeNet<TStr, TStr> > graph;
 	TPair<TPt<TNodeEdgeNet<TStr, TStr> >, THash<TStr, int> > graphAndNodeIndex = n3parser::buildRDFGraph(filename);
 	graph = graphAndNodeIndex.Val1;
@@ -27,7 +27,7 @@ TPt<TNodeEdgeNet<TStr, WeightedPredicate> > buildWalkableGraph(TStr filename, Gr
 
 
 
-void TextFileSink::consume(TVec<TStr> path) {
+void TextFileSink::consume(const TVec<TStr> & path) {
 	int sepCount = 0;
 	for (int partNr = 0; partNr < path.Len(); partNr++) {
 		fwrite(" ", sizeof(char), sepCount, fout);

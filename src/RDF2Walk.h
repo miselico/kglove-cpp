@@ -19,15 +19,15 @@ protected:
 
 	}
 public:
-	virtual void consume(TVec<TStr> walk) = 0;
+	virtual void consume(const TVec<TStr> & walk) = 0;
 };
 
 //removed because the particular way is different each time.
 //void computeWalks(TStr filename, GraphWeigher & weighingStrategy, GraphWalker& walker, int amount, WalkSink & sink);
 
-TPt<TNodeEdgeNet<TStr, WeightedPredicate> > buildWalkableGraph(TStr filename, GraphWeigher & weighingStrategy);
+TPt<TNodeEdgeNet<TStr, WeightedPredicate> > buildWalkableGraph(const TStr & filename, const GraphWeigher & weighingStrategy);
 
-TPt<TNodeEdgeNet<TStr, WeightedPredicate> > buildWalkableGraphIgnoringLiterals(TStr filename, GraphWeigher & weighingStrategy);
+TPt<TNodeEdgeNet<TStr, WeightedPredicate> > buildWalkableGraphIgnoringLiterals(const TStr & filename, const GraphWeigher & weighingStrategy);
 
 
 class TextFileSink: public WalkSink {
@@ -39,7 +39,7 @@ public:
 			fout(fout) {
 	}
 
-	virtual void consume(TVec<TStr> walk);
+	virtual void consume(const TVec<TStr> & walk);
 };
 
 #endif /* RDF2WALK_H_ */
