@@ -16,10 +16,11 @@ protected:
 	GraphWeigher() {
 
 	}
+
+public:
 	virtual ~GraphWeigher() {
 
 	}
-public:
 	virtual TPt<TNodeEdgeNet<TStr, WeightedPredicate> > weigh(TPt<TNodeEdgeNet<TStr, TStr> >) const = 0;
 };
 
@@ -28,14 +29,45 @@ public:
 	virtual TPt<TNodeEdgeNet<TStr, WeightedPredicate> > weigh(TPt<TNodeEdgeNet<TStr, TStr> >) const;
 };
 
-class InverseFrequencyWeigher: public GraphWeigher {
+class InversePredicateFrequencyWeigher: public GraphWeigher {
+public:
+	virtual TPt<TNodeEdgeNet<TStr, WeightedPredicate> > weigh(TPt<TNodeEdgeNet<TStr, TStr> >) const;
+};
+
+class PredicateFrequencyWeigher: public GraphWeigher {
+public:
+	virtual TPt<TNodeEdgeNet<TStr, WeightedPredicate> > weigh(TPt<TNodeEdgeNet<TStr, TStr> >) const;
+};
+
+class ObjectFrequencyWeigher: public GraphWeigher {
+public:
+	virtual TPt<TNodeEdgeNet<TStr, WeightedPredicate> > weigh(TPt<TNodeEdgeNet<TStr, TStr> >) const;
+};
+
+class InverseObjectFrequencyWeigher: public GraphWeigher {
+public:
+	virtual TPt<TNodeEdgeNet<TStr, WeightedPredicate> > weigh(TPt<TNodeEdgeNet<TStr, TStr> >) const;
+};
+
+class PredicateObjectFrequencyWeigher: public GraphWeigher {
+public:
+	virtual TPt<TNodeEdgeNet<TStr, WeightedPredicate> > weigh(TPt<TNodeEdgeNet<TStr, TStr> >) const;
+};
+
+class InversePredicateObjectFrequencyWeigher: public GraphWeigher {
+public:
+	virtual TPt<TNodeEdgeNet<TStr, WeightedPredicate> > weigh(TPt<TNodeEdgeNet<TStr, TStr> >) const;
+};
+
+class InverseObjectFrequencyWeigherSplitDown: public GraphWeigher {
 public:
 	virtual TPt<TNodeEdgeNet<TStr, WeightedPredicate> > weigh(TPt<TNodeEdgeNet<TStr, TStr> >) const;
 };
 
 /**
- * Assigns a weight to the edges depending on the weight assigned to the nodes.
+ * Assigns to each inedge the weight assigned to the nodes.
  * Nodes which are not in the nodeWeights provided get assigned the defaultWeight
+ * Then all weights are normalized
  *
  *
  * First, each in edge gets the weight of the node
@@ -43,30 +75,37 @@ public:
  *
  */
 class PushDownWeigher: public GraphWeigher {
-	const THash<TStr, TFlt>  nodeWeights;
+	const THash<TStr, TFlt> nodeWeights;
 	const double defaultWeight;
 
 public:
-	PushDownWeigher(const THash<TStr, TFlt>  nodeWeights, const double defaultWeight) :
+	PushDownWeigher(const THash<TStr, TFlt> nodeWeights, const double defaultWeight) :
 			nodeWeights(nodeWeights), defaultWeight(defaultWeight) {
 	}
 
 	virtual TPt<TNodeEdgeNet<TStr, WeightedPredicate> > weigh(TPt<TNodeEdgeNet<TStr, TStr> >) const;
 };
 
-
-
-
-/*
- Ideas for other weighers:
-
- - start by assigning weight/indegree to the edges
- - start by inverting all weights
-
-
+/**
+ * Assigns to each inedge the weight assigned to the nodes divided by the number of in edges.
+ * Nodes which are not in the nodeWeights provided get assigned the defaultWeight divided by #inedge
+ * Then all weights are normalized
+ *
+ *
+ * First, each in edge gets the weight of the node / #inedge
+ * Then, each weight on the outedges of each node is normalized such that they sum to 1.
+ *
  */
+class SplitDownWeigher: public GraphWeigher {
+	const THash<TStr, TFlt> nodeWeights;
+	const double defaultWeight;
 
+public:
+	SplitDownWeigher(const THash<TStr, TFlt> nodeWeights, const double defaultWeight) :
+			nodeWeights(nodeWeights), defaultWeight(defaultWeight) {
+	}
 
-
+	virtual TPt<TNodeEdgeNet<TStr, WeightedPredicate> > weigh(TPt<TNodeEdgeNet<TStr, TStr> >) const;
+};
 
 #endif /* GRAPHWEIGHER_H_ */

@@ -19,7 +19,7 @@ void performExperiments() {
 
 	FILE* outfile = fopen("frequencies_output.bin", "w");
 
-	InverseFrequencyWeigher weigher = InverseFrequencyWeigher();
+	InversePredicateFrequencyWeigher weigher = InversePredicateFrequencyWeigher();
 
 	computeFrequencies(file, weigher, outfile);
 

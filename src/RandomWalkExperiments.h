@@ -9,6 +9,6 @@
 #define RANDOMWALKEXPERIMENTS_H_
 
 namespace RandomWalkExperiments {
-void performExperiments();
+int  performExperiments(int strategy);
 }
 #endif /* RANDOMWALKEXPERIMENTS_H_ */
