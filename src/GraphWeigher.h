@@ -79,6 +79,9 @@ class PushDownWeigher: public GraphWeigher {
 	const double defaultWeight;
 
 public:
+	/**
+	 * If defaultweight is set to -1, it indicates that all weights MUST be in the nodeWeights. If not, the program will be terminated.
+	 */
 	PushDownWeigher(const THash<TStr, TFlt> nodeWeights, const double defaultWeight) :
 			nodeWeights(nodeWeights), defaultWeight(defaultWeight) {
 	}
@@ -101,6 +104,9 @@ class SplitDownWeigher: public GraphWeigher {
 	const double defaultWeight;
 
 public:
+	/**
+	 * If defaultweight is set to -1, it indicates that all weights MUST be in the nodeWeights. If not, the program will be terminated.
+	 */
 	SplitDownWeigher(const THash<TStr, TFlt> nodeWeights, const double defaultWeight) :
 			nodeWeights(nodeWeights), defaultWeight(defaultWeight) {
 	}

@@ -160,8 +160,8 @@ TPt<TNodeEdgeNet<TStr, WeightedPredicate> > PredicateObjectFrequencyWeigher::wei
 }
 
 TPt<TNodeEdgeNet<TStr, WeightedPredicate> > InversePredicateObjectFrequencyWeigher::weigh(TPt<TNodeEdgeNet<TStr, TStr> > baseGraph) const {
-	THash<TStrPr, TFlt> absolute_freq2 = absolute_predicate_object_freq(baseGraph);
-	THash<TStrPr, TFlt> inverse_freq = inverse_the_frequency(absolute_freq2);
+	THash<TStrPr, TFlt> absolute_freq = absolute_predicate_object_freq(baseGraph);
+	THash<TStrPr, TFlt> inverse_freq = inverse_the_frequency(absolute_freq);
 	TPt<TNodeEdgeNet<TStr, WeightedPredicate> > newNet = newNetCopyNodes(baseGraph);
 	for (TNodeEdgeNet<TStr, TStr>::TEdgeI EI = baseGraph->BegEI(); EI < baseGraph->EndEI(); EI++) {
 		TStr pred = EI.GetDat();

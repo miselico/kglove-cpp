@@ -105,13 +105,13 @@ int performExperiments(int strategyNumber) {
 
 	//general walk settings
 	int length = 4;
-	int walksPerNode = 200;
+	int walksPerNode = 250;
 	int seed = 45645;
 	TStr walksOutFileName = TStr("walks_strategy_") + TInt::GetStr(strategyNumber) + TStr(".txt");
 
 	//inputfile settings
-	//TStr ntriplesFileName = "allData.nt";
-	TStr ntriplesFileName = "SmallTest8_multiplePO.nt";
+	TStr ntriplesFileName = "allData.nt";
+	//TStr ntriplesFileName = "SmallTest8_multiplePO.nt";
 	TStr pageRankFileName = "pagerank.tsv";
 
 	GraphWeigher * weigher = nullptr;
@@ -168,7 +168,7 @@ int performExperiments(int strategyNumber) {
 		weigher = new InverseObjectFrequencyWeigherSplitDown();
 		break;
 	default:
-		cerr << "Only numbers between 1 and 11 are valid";
+		cerr << "Only numbers between 1 and 12 are valid";
 		return 1;
 	}
 
