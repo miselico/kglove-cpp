@@ -29,6 +29,7 @@ TPt<TNodeEdgeNet<TStr, WeightedPredicate> > buildWalkableGraph(const TStr & file
 
 TPt<TNodeEdgeNet<TStr, WeightedPredicate> > buildWalkableGraphIgnoringLiterals(const TStr & filename, const GraphWeigher & weighingStrategy);
 
+TPair<TPt<TNodeEdgeNet<TStr, WeightedPredicate> >, TVec<TInt> > buildWalkableGraphIgnoringLiteralsAndLeafs(const TStr & filename, const GraphWeigher & weighingStrategy);
 
 class TextFileSink: public WalkSink {
 private:

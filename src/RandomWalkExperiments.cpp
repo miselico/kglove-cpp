@@ -20,10 +20,33 @@ namespace RandomWalkExperiments {
 
 using namespace std;
 
+namespace {
 static TStr RDF_TYPE("<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>");
 static TStr OWL_THING("<http://www.w3.org/2002/07/owl#Thing>");
+}
 
-void walkAround(const TPt<TNodeEdgeNet<TStr, WeightedPredicate> >& graph, int walksPerNode, GraphWalker & walker, TextFileSink & sink) {
+void walkAroundStartFromStarts(const TPt<TNodeEdgeNet<TStr, WeightedPredicate> >& graph, int walksPerNode, GraphWalker & walker, TextFileSink & sink, TVec<TInt> & starts) {
+	long sumWalkLengths = 0;
+	long generatedPaths = 0;
+	int conceptCount = 0;
+	long int nodeCount = graph->GetNodes();
+	for (TVec<TInt>::TIter iter = starts.BegI(); iter < starts.EndI(); iter++) {
+		TNodeEdgeNet<TStr, WeightedPredicate>::TNodeI startNode = graph->GetNI(iter->Val);
+		conceptCount++;
+		//Generate paths
+		for (int j = 0; j < walksPerNode; ++j) {
+			TVec<TStr> path = walker.performWalk(graph, startNode);
+			sumWalkLengths += path.Len();
+			sink.consume(path);
+			generatedPaths++;
+		}
+
+	}
+	cout << "Found " << conceptCount << " concepts out of " << nodeCount << " entities. Generated " << walksPerNode << " per concept, i.e., " << generatedPaths << " paths" << endl;
+	cout << "All paths generated, Average path length (total length including start node and predicates) = " << double(sumWalkLengths) / double(generatedPaths) << endl;
+}
+
+void walkAroundStartFromOWLThings(const TPt<TNodeEdgeNet<TStr, WeightedPredicate> >& graph, int walksPerNode, GraphWalker & walker, TextFileSink & sink) {
 	long sumWalkLengths = 0;
 	long generatedPaths = 0;
 	int conceptCount = 0;
@@ -80,8 +103,6 @@ THash<TStr, TFlt> readDBPediaPageRanks(TStr tsvFile) {
 
 int performExperiments(int strategyNumber) {
 
-	cerr << "Currently missing object freq split" << endl;
-
 	//general walk settings
 	int length = 4;
 	int walksPerNode = 200;
@@ -89,7 +110,8 @@ int performExperiments(int strategyNumber) {
 	TStr walksOutFileName = TStr("walks_strategy_") + TInt::GetStr(strategyNumber) + TStr(".txt");
 
 	//inputfile settings
-	TStr ntriplesFileName = "allData.nt";
+	//TStr ntriplesFileName = "allData.nt";
+	TStr ntriplesFileName = "SmallTest8_multiplePO.nt";
 	TStr pageRankFileName = "pagerank.tsv";
 
 	GraphWeigher * weigher = nullptr;
@@ -160,6 +182,9 @@ int performExperiments(int strategyNumber) {
 	cout << "Reading in data and weighing" << endl;
 
 	TPt<TNodeEdgeNet<TStr, WeightedPredicate> > graph = buildWalkableGraphIgnoringLiterals(ntriplesFileName, *weigher);
+//alternative: also leave out leafs in the graph -> also change a couple of lines below!!!
+
+//	TPair<TPt<TNodeEdgeNet<TStr, WeightedPredicate> >, TVec<TInt> > grapAndStarts = buildWalkableGraphIgnoringLiteralsAndLeafs(ntriplesFileName, *weigher);
 
 	delete weigher;
 
@@ -167,7 +192,14 @@ int performExperiments(int strategyNumber) {
 
 	RandomProportionalWalker walker(length, seed);
 
-	walkAround(graph, walksPerNode, walker, sink);
+
+	walkAroundStartFromOWLThings(graph, walksPerNode, walker, sink);
+
+//alternaive: also leave out leafs in the graph -> also change a couple of lines above!!!
+//	TPt<TNodeEdgeNet<TStr, WeightedPredicate> > graph = grapAndStarts.Val1;
+//	TVec<TInt> startingpoints = grapAndStarts.Val2;
+//	walkAroundStartFromStarts(graph, walksPerNode, walker, sink, startingpoints);
+
 	if (fclose(walksOutFile) == 0) {
 		cout << "file closed correctly" << endl;
 	} else {
@@ -180,7 +212,6 @@ int performExperiments(int strategyNumber) {
 
 namespace {
 //OLD experiments, not in use any longer
-
 
 void experiment0() {
 	//TStr file = "wikidata-simple-statements-1_000000-sample.nt";
@@ -242,7 +273,7 @@ void experiment1() {
 
 	TPt<TNodeEdgeNet<TStr, WeightedPredicate> > graph = buildWalkableGraphIgnoringLiterals(file, weigher);
 
-	walkAround(graph, walksPerNode, walker, sink);
+	walkAroundStartFromOWLThings(graph, walksPerNode, walker, sink);
 	if (fclose(f) == 0) {
 		cout << "file closed correctly" << endl;
 	} else {
@@ -273,7 +304,7 @@ void experiment2() {
 
 	TPt<TNodeEdgeNet<TStr, WeightedPredicate> > graph = buildWalkableGraphIgnoringLiterals(file, weigher);
 
-	walkAround(graph, walksPerNode, walker, sink);
+	walkAroundStartFromOWLThings(graph, walksPerNode, walker, sink);
 	if (fclose(f) == 0) {
 		cout << "file closed correctly" << endl;
 	} else {
