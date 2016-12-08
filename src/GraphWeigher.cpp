@@ -182,16 +182,18 @@ TPt<TNodeEdgeNet<TStr, WeightedPredicate> > PushDownWeigher::weigh(TPt<TNodeEdge
 		TFlt weight = this->defaultWeight;
 		//overwrite default if a value is set
 		nodeWeights.IsKeyGetDat(NI.GetDat(), weight);
-		if (this->defaultWeight == -1.0 && weight == -1.0) {
-			cerr << "Defaultweight was  -1 and node was not found in the given map -> ERROR, quitting";
-			exit(1);
-		}
-		//add all *in* edges with the weight
 		int node_i_indeg = NI.GetInDeg();
-		for (int inEdge = 0; inEdge < node_i_indeg; ++inEdge) {
-			TStr label = NI.GetInEDat(inEdge);
-			const WeightedPredicate pred(label, weight);
-			newNet->AddEdge(NI.GetInNId(inEdge), NI.GetId(), NI.GetInEId(inEdge), pred);
+		if (node_i_indeg > 0) {
+			if (this->defaultWeight == -1.0 && weight == -1.0) {
+				cerr << "Defaultweight was  -1 and node was not found in the given map -> ERROR, quitting";
+				exit(1);
+			}
+			//add all *in* edges with the weight
+			for (int inEdge = 0; inEdge < node_i_indeg; ++inEdge) {
+				TStr label = NI.GetInEDat(inEdge);
+				const WeightedPredicate pred(label, weight);
+				newNet->AddEdge(NI.GetInNId(inEdge), NI.GetId(), NI.GetInEId(inEdge), pred);
+			}
 		}
 	}
 	normalize(newNet);
@@ -208,17 +210,19 @@ TPt<TNodeEdgeNet<TStr, WeightedPredicate> > SplitDownWeigher::weigh(TPt<TNodeEdg
 		TFlt weight = this->defaultWeight;
 		//overwrite default if a value is set
 		nodeWeights.IsKeyGetDat(NI.GetDat(), weight);
-		if (this->defaultWeight == -1.0 && weight == -1.0) {
-			cerr << "Defaultweight was  -1 and node was not found in the given map -> ERROR, quitting";
-			exit(1);
-		}
-		//add all *in* edges with the weight/indegree
 		int indeg = NI.GetInDeg();
-		weight = weight / double(indeg);
-		for (int inEdge = 0; inEdge < indeg; ++inEdge) {
-			TStr label = NI.GetInEDat(inEdge);
-			const WeightedPredicate pred(label, weight);
-			newNet->AddEdge(NI.GetInNId(inEdge), NI.GetId(), NI.GetInEId(inEdge), pred);
+		if (indeg > 0) {
+			if (this->defaultWeight == -1.0 && weight == -1.0) {
+				cerr << "Defaultweight was  -1 and node was not found in the given map -> ERROR, quitting";
+				exit(1);
+			}
+			//add all *in* edges with the weight/indegree
+			weight = weight / double(indeg);
+			for (int inEdge = 0; inEdge < indeg; ++inEdge) {
+				TStr label = NI.GetInEDat(inEdge);
+				const WeightedPredicate pred(label, weight);
+				newNet->AddEdge(NI.GetInNId(inEdge), NI.GetId(), NI.GetInEId(inEdge), pred);
+			}
 		}
 	}
 	normalize(newNet);
