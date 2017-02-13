@@ -11,21 +11,6 @@
 #include "GraphWeigher.h"
 
 namespace RDF2CO {
-void performExperiments() {
-	//TStr file = "wikidata-simple-statements-1_000000-sample.nt";
-	//TStr file = "sample-wikidata-terms-fragment.nt";
-	//TStr file = "sample-wikidata-terms.nt";
-	TStr file = "SmallTest4.nt";
-
-	FILE* outfile = fopen("frequencies_output.bin", "w");
-
-	InversePredicateFrequencyWeigher weigher = InversePredicateFrequencyWeigher();
-
-	computeFrequencies(file, weigher, outfile);
-
-	fclose(outfile);
-	fclose (f);
+void performExperiments();
 }
-}
-
 #endif /* RDF2CO_OCCURENCE_H_ */

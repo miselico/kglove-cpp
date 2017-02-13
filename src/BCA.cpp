@@ -8,11 +8,7 @@
 #include "BCA.h"
 #include "doublePriorityQueue.h"
 
-
-
 using namespace std;
-
-
 
 void BCV::fixPaint(int ID, double amount) {
 	double startAmount = this->GetDatWithDefault(ID, 0.0);
@@ -66,6 +62,9 @@ public:
 
 };
 
+/**
+ * Compute the bookmarking coloring algorithm (≃ personalized page rank) between node d_ID and all other nodes in the graph. Using teleportation parameter alpha and cut-off value eps.
+ */
 BCV computeBCA(TPt<TNodeEdgeNet<TStr, WeightedPredicate> > network, int b_ID, double alpha, double eps) {
 	BCAQueue Q;
 	BCV p;
@@ -127,7 +126,6 @@ string PBCV::toString(const TPt<TNodeEdgeNet<TStr, WeightedPredicate> > network)
 }
 
 PBCV computePBCA(TPt<TNodeEdgeNet<TStr, WeightedPredicate> > network, int b_ID, double alpha, double eps) {
-
 
 	//Note!! This queue contains the amount of paint which still has to be moved OUT of the nodes.
 	//Nothing of it should stay on the the node itself.

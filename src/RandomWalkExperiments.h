@@ -9,6 +9,6 @@
 #define RANDOMWALKEXPERIMENTS_H_
 
 namespace RandomWalkExperiments {
-int  performExperiments(int strategy);
+int  performExperiments(int strategy, char* outFileName);
 }
 #endif /* RANDOMWALKEXPERIMENTS_H_ */

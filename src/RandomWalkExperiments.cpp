@@ -101,14 +101,18 @@ THash<TStr, TFlt> readDBPediaPageRanks(TStr tsvFile) {
 	return ranks;
 }
 
-int performExperiments(int strategyNumber) {
+int performExperiments(int strategyNumber, char* outFileName) {
 
 	//general walk settings
 	int length = 4;
 	int walksPerNode = 250;
 	int seed = 45645;
-	TStr walksOutFileName = TStr("walks_strategy_") + TInt::GetStr(strategyNumber) + TStr(".txt");
-
+	TStr walksOutFileName;
+	if (outFileName == NULL){
+		walksOutFileName = TStr("walks_strategy_") + TInt::GetStr(strategyNumber) + TStr(".txt");
+	} else{
+		walksOutFileName = TStr(outFileName);
+	}
 	//inputfile settings
 	TStr ntriplesFileName = "allData.nt";
 	//TStr ntriplesFileName = "SmallTest8_multiplePO.nt";

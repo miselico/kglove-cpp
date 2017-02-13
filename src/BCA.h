@@ -17,7 +17,7 @@
 using namespace std;
 
 //sparse vector representing the approx pagerank
-class BCV: THash<TInt, TFlt> {
+class BCV: public THash<TInt, TFlt> {
 public:
 	string toString(const TPt<TNodeEdgeNet<TStr, WeightedPredicate> > network);
 	void fixPaint(int ID, double amount);
