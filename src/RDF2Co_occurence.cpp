@@ -92,7 +92,7 @@ void computeFrequencies(TStr filename, GraphWeigher& weighingStrategy, double bc
 
 		TStr nodeLabel = weightedGraph->GetNDat(focusWordGraphID);
 
-		fprintf(glove_vocab_file_out, "%s\n", nodeLabel.CStr());
+		fprintf(glove_vocab_file_out, "%s fakeFrequency\n", nodeLabel.CStr());
 		if (i % 1000 == 0){
 			cout << i / float(weightedGraph->GetNodes()) << endl;
 		}
@@ -182,7 +182,7 @@ void performExperiments() {
 
 	//computeFrequenciesPushBCA(file, weigher, outfile);
 
-	computeFrequencies(file, weigher, 0.50, 0.0039, glove_input_file_out, glove_vocab_file_out);
+	computeFrequencies(file, weigher, 0.80, 0.0039, glove_input_file_out, glove_vocab_file_out);
 	//computeFrequencies(file, weigher, 0.50, 0.05, glove_input_file_out, glove_vocab_file_out);
 
 	fclose(glove_input_file_out);
