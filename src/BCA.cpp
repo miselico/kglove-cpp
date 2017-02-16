@@ -63,7 +63,7 @@ public:
 };
 
 /**
- * Compute the bookmarking coloring algorithm (≃ personalized page rank) between node d_ID and all other nodes in the graph. Using teleportation parameter alpha and cut-off value eps.
+ * Compute the bookmarking coloring algorithm (≃ personalized page rank) between node b_ID and all other nodes in the graph. Using teleportation parameter alpha and cut-off value eps.
  */
 BCV computeBCA(TPt<TNodeEdgeNet<TStr, WeightedPredicate> > network, int b_ID, double alpha, double eps) {
 	BCAQueue Q;

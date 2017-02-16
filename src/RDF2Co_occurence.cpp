@@ -48,57 +48,60 @@ THash<TPair<TStr, TStr>, TInt> createPairedWordIndexTable(TPt<TNodeEdgeNet<TStr,
 	return table;
 }
 
+/*
+ * The wordIndexTable is indexed from 0 as it should be, but we need IDs which start from 1. This function abstracts this away
+ */
+
+int graphIDToGloveID(int graphID) {
+	return graphID + 1;
+}
 
 /**
- * Not finished!!
  *
  * Compute the BCA score for each pair in the graph under the given weiging strategy.
  *
  * Outputs the score as a sparse matrix which can be fed to glove.
  *
- *
- *
  */
-void computeFrequencies(TStr filename, GraphWeigher& weighingStrategy, double bca_alpha, double bca_eps, FILE *fout) {
+void computeFrequencies(TStr filename, GraphWeigher& weighingStrategy, double bca_alpha, double bca_eps, FILE * glove_input_file_out, FILE * glove_vocab_file_out) {
 	TPair<TPt<TNodeEdgeNet<TStr, TStr> >, THash<TStr, int> > graphAndNodeIndex = n3parser::buildRDFGraphIgnoreLiterals(filename);
 	TPt<TNodeEdgeNet<TStr, TStr> > graph = graphAndNodeIndex.Val1;
-	/*
-	 * The wordIndexTable is indexed from 0 as it should be, but we need IDs which start from 1. So we create a new table with corrected gloveIDTable
-	 */
-
-	THash<TStr, int> gloveIDTable;
-	{//scoping wordIndexTable to avoid mistakes
-		THash<TStr, int> wordIndexTable = graphAndNodeIndex.Val2;
-		for (THash<TStr, int>::TIter iter = wordIndexTable.BegI(); iter < wordIndexTable.EndI(); iter++) {
-			gloveIDTable.AddDat(iter.GetKey(), iter.GetDat() + 1);
-		}
-	}
 
 	TPt<TNodeEdgeNet<TStr, WeightedPredicate> > weightedGraph = weighingStrategy.weigh(graph);
 
-	cout << "There are still some extra things done, remove if asserts are not triggered";
+//	for (int i = 0; i < weightedGraph->GetEdges(); i++) {
+//		WeightedPredicate data  = weightedGraph->GetEDat(i);
+//		cout << data.Val1.CStr() <<  " " << data.Val2 << "\n";
+//
+//	}
 
 	for (int i = 0; i < weightedGraph->GetNodes(); ++i) {
 
 		int focusWordGraphID = i;
-		int focusWordGloveID = gloveIDTable.GetDat(weightedGraph->GetNDat(focusWordGraphID));
-
 		BCV bcv = computeBCA(weightedGraph, focusWordGraphID, bca_alpha, bca_eps);
+
+		int focusWordGloveID = graphIDToGloveID(i);
 
 		for (THash<TInt, TFlt>::TIter iter = bcv.BegI(); iter < bcv.EndI(); iter++) {
 			int contextWordGraphID = iter.GetKey();
-			int contextWordGloveID = gloveIDTable.GetDat(weightedGraph->GetNDat(contextWordGraphID));
-
+			int contextWordGloveID = graphIDToGloveID(contextWordGraphID);
 			double freq = iter.GetDat();
 			CREC crec = CREC { word1:focusWordGloveID, word2:contextWordGloveID, val: freq };
-			fwrite(&crec, sizeof(CREC), 1, fout);
+			fwrite(&crec, sizeof(CREC), 1, glove_input_file_out);
+		}
+
+		TStr nodeLabel = weightedGraph->GetNDat(focusWordGraphID);
+
+		fprintf(glove_vocab_file_out, "%s\n", nodeLabel.CStr());
+		if (i % 1000 == 0){
+			cout << i / float(weightedGraph->GetNodes()) << endl;
 		}
 	}
-
-	cerr << "TODO : write glove ID table to file";
-
 }
 
+/**
+ * Implementation incomplete!!!
+ */
 void computeFrequenciesPushBCA(TStr filename, GraphWeigher& weighingStrategy, FILE *fout) {
 	TPair<TPt<TNodeEdgeNet<TStr, TStr> >, THash<TStr, int> > graphAndNodeIndex = n3parser::buildRDFGraph(filename);
 	TPt<TNodeEdgeNet<TStr, TStr> > graph = graphAndNodeIndex.Val1;
@@ -167,16 +170,23 @@ void performExperiments() {
 //TStr file = "wikidata-simple-statements-1_000000-sample.nt";
 //TStr file = "sample-wikidata-terms-fragment.nt";
 //TStr file = "sample-wikidata-terms.nt";
-	TStr file = "SmallTest4.nt";
+	TStr file = "../../datasets/aifb_fixed_complete.nt";
+	//	TStr file = "SmallTest4.nt";
 
-	FILE* outfile = fopen("frequencies_output.bin", "w");
+	FILE* glove_input_file_out = fopen("glove_input_file_out.bin", "w");
+	FILE* glove_vocab_file_out = fopen("glove_vocab_file_out", "w");
 
-	InversePredicateFrequencyWeigher weigher = InversePredicateFrequencyWeigher();
+	//InversePredicateFrequencyWeigher weigher = InversePredicateFrequencyWeigher();
 
-	computeFrequenciesPushBCA(file, weigher, outfile);
+	UniformWeigher weigher;
 
-	fclose(outfile);
-//	fclose (f);
+	//computeFrequenciesPushBCA(file, weigher, outfile);
+
+	computeFrequencies(file, weigher, 0.50, 0.0039, glove_input_file_out, glove_vocab_file_out);
+	//computeFrequencies(file, weigher, 0.50, 0.05, glove_input_file_out, glove_vocab_file_out);
+
+	fclose(glove_input_file_out);
+	fclose(glove_vocab_file_out);
 }
 
 }
