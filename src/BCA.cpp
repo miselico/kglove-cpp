@@ -35,6 +35,23 @@ string BCV::toString(const TPt<TNodeEdgeNet<TStr, WeightedPredicate> > network) 
 	return s;
 }
 
+void BCV::removeEntry(int ID){
+	this->DelKey(ID);
+}
+
+void BCV::normalizeInPlace() {
+	double totalSum = 0.0;
+	for (THash<TInt, TFlt>::TIter iter = this->BegI(); iter < this->EndI(); iter++) {
+		totalSum += iter.GetDat();
+	}
+	for (THash<TInt, TFlt>::TIter iter = this->BegI(); iter < this->EndI(); iter++) {
+		TFlt & value = iter.GetDat();
+		double scaled = value / totalSum;
+		//sets the value in the vector
+		value = scaled;
+	}
+}
+
 class BCAQueue: doublePriorityQueue<TInt> {
 public:
 	void addPaintTo(int toID, double paint) {
@@ -92,7 +109,6 @@ BCV computeBCA(TPt<TNodeEdgeNet<TStr, WeightedPredicate> > network, int b_ID, do
 
 }
 
-
 /**
  * Compute the bookmarking coloring algorithm (≃ personalized page rank) between node b_ID and all other nodes in the graph. Using teleportation parameter alpha and cut-off value eps.
  *
@@ -128,7 +144,7 @@ TPair<BCV, BCV> computeBCAIncludingEdges(TPt<TNodeEdgeNet<TStr, WeightedPredicat
 			Q.addPaintTo(j, paintToJ);
 		}
 	}
-	return TPair<BCV,BCV>(p, edgePagerank);
+	return TPair<BCV, BCV>(p, edgePagerank);
 
 }
 

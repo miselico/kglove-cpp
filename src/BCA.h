@@ -21,7 +21,9 @@ class BCV: public THash<TInt, TFlt> {
 public:
 	string toString(const TPt<TNodeEdgeNet<TStr, WeightedPredicate> > network);
 	void fixPaint(int ID, double amount);
-
+	void removeEntry(int ID);
+	//This function normalizes the vector such that pageranks add up to 1 IN PLACE
+	void normalizeInPlace();
 };
 
 BCV computeBCA(TPt<TNodeEdgeNet<TStr, WeightedPredicate> > network, int b_ID, double alpha, double eps);

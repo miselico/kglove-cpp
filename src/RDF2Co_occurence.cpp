@@ -101,7 +101,7 @@ void computeFrequencies(TStr filename, GraphWeigher& weighingStrategy, double bc
  * Outputs the score as a sparse matrix which can be fed to glove.
  *
  */
-void computeFrequenciesIncludingEdges(TStr filename, GraphWeigher& weighingStrategy, double bca_alpha, double bca_eps, FILE * glove_input_file_out, FILE * glove_vocab_file_out) {
+void computeFrequenciesIncludingEdges(TStr filename, GraphWeigher& weighingStrategy, double bca_alpha, double bca_eps, FILE * glove_input_file_out, FILE * glove_vocab_file_out, bool normalize) {
 	TPair<TPt<TNodeEdgeNet<TStr, TStr> >, THash<TStr, int> > graphAndNodeIndex = n3parser::buildRDFGraphIgnoreLiterals(filename);
 	TPt<TNodeEdgeNet<TStr, TStr> > graph = graphAndNodeIndex.Val1;
 
@@ -116,6 +116,10 @@ void computeFrequenciesIncludingEdges(TStr filename, GraphWeigher& weighingStrat
 		const int focusWordGloveID = graphIDToGloveID(i);
 		{ //scoping bcv
 			BCV bcv = bcvs.Val1;
+			if (normalize) {
+				bcv.removeEntry(i)
+				bcv.normalizeInPlace();
+			}
 
 			for (THash<TInt, TFlt>::TIter iter = bcv.BegI(); iter < bcv.EndI(); iter++) {
 				int contextWordGraphID = iter.GetKey();
@@ -125,8 +129,13 @@ void computeFrequenciesIncludingEdges(TStr filename, GraphWeigher& weighingStrat
 				fwrite(&crec, sizeof(CREC), 1, glove_input_file_out);
 			}
 		}
-		{//scoping bcv_predicates
+		{ //scoping bcv_predicates
 			BCV bcv_predicates = bcvs.Val2;
+
+			if (normalize) {
+				//There is no need to remove anything, as the node under consideration is not in the predicate list.
+				bcv_predicates.normalizeInPlace();
+			}
 
 			for (THash<TInt, TFlt>::TIter iter = bcv_predicates.BegI(); iter < bcv_predicates.EndI(); iter++) {
 				int contextPredicateWordGraphID = iter.GetKey();
@@ -235,7 +244,8 @@ void performExperiments() {
 
 	//computeFrequenciesPushBCA(file, weigher, outfile);
 
-	computeFrequenciesIncludingEdges(file, weigher, 0.80, 0.0039, glove_input_file_out, glove_vocab_file_out);
+	bool normalize = true;
+	computeFrequenciesIncludingEdges(file, weigher, 0.80, 0.0039, glove_input_file_out, glove_vocab_file_out, normalize);
 	//computeFrequencies(file, weigher, 0.50, 0.05, glove_input_file_out, glove_vocab_file_out);
 
 	fclose(glove_input_file_out);
