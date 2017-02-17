@@ -117,7 +117,7 @@ void computeFrequenciesIncludingEdges(TStr filename, GraphWeigher& weighingStrat
 		{ //scoping bcv
 			BCV bcv = bcvs.Val1;
 			if (normalize) {
-				bcv.removeEntry(i)
+				bcv.removeEntry(i);
 				bcv.normalizeInPlace();
 			}
 
