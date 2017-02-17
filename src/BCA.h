@@ -38,5 +38,7 @@ public:
 //PBCA = Pushed Bookmar cocloring algorithm
 PBCV computePBCA(TPt<TNodeEdgeNet<TStr, WeightedPredicate> > network, int b_ID, double alpha, double eps);
 
+TPair<BCV, BCV> computeBCAIncludingEdges(TPt<TNodeEdgeNet<TStr, WeightedPredicate> > network, int b_ID, double alpha, double eps);
+
 
 #endif /* BCA_H_ */
