@@ -24,6 +24,7 @@ public:
 	void removeEntry(int ID);
 	//This function normalizes the vector such that pageranks add up to 1 IN PLACE
 	void normalizeInPlace();
+	void add (BCV & other);
 };
 
 BCV computeBCA(TPt<TNodeEdgeNet<TStr, WeightedPredicate> > network, int b_ID, double alpha, double eps);

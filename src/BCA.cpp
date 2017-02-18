@@ -35,7 +35,7 @@ string BCV::toString(const TPt<TNodeEdgeNet<TStr, WeightedPredicate> > network) 
 	return s;
 }
 
-void BCV::removeEntry(int ID){
+void BCV::removeEntry(int ID) {
 	this->DelKey(ID);
 }
 
@@ -49,6 +49,19 @@ void BCV::normalizeInPlace() {
 		double scaled = value / totalSum;
 		//sets the value in the vector
 		value = scaled;
+	}
+}
+
+void BCV::add(BCV & other) {
+	for (THash<TInt, TFlt>::TIter iter = other.BegI(); iter < other.EndI(); iter++) {
+		TInt ID = iter.GetKey();
+		TFlt addition = iter.GetDat();
+		TFlt original = 0;
+		if (this->IsKeyGetDat(ID, original)) {
+			this->AddDat(ID, original + addition);
+		} else {
+			this->AddDat(ID, addition);
+		}
 	}
 }
 
