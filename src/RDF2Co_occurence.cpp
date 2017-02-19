@@ -95,25 +95,54 @@ void computeFrequencies(TStr filename, GraphWeigher& weighingStrategy, double bc
 }
 
 /**
+ * For each unique predicate in the graph add a unique ID it to the returned hash.
+ *
+ * The returned vector contains the strings in the same order as their IDs
+ *
+ * The used IDs range from graph.Nodes() till graph.Nodes+(numberOfUniquePredicates=returnValue.Len()) exclusive
+ */
+TPair<TVec<TStr>, THash<TStr, int>> computePredicateIDs(TPt<TNodeEdgeNet<TStr, TStr> > graph) {
+	THash<TStr, int> preds;
+	TVec<TStr> labels;
+	unsigned int currentID = graph->GetNodes();
+	for (int i = 0; i < graph->GetEdges(); ++i) {
+		TStr label = graph->GetEDat(i);
+		if (!preds.IsKey(label)) {
+			preds.AddDat(label, currentID);
+			labels.Add(label);
+			currentID++;
+		}
+	}
+	return TPair<TVec<TStr>, THash<TStr, int>>(labels, preds);
+}
+
+/**
  *
  * Compute the BCA score for each pair in the graph under the given weighing strategy.
  * Additionally, adds a score for each edge as well.
  *
  * Outputs the score as a sparse matrix which can be fed to glove.
  *
+ *
+ *
  */
 void computeFrequenciesIncludingEdges(TStr filename, GraphWeigher& weighingStrategy, double bca_alpha, double bca_eps, FILE * glove_input_file_out, FILE * glove_vocab_file_out, bool normalize) {
-	TPair<TPt<TNodeEdgeNet<TStr, TStr> >, THash<TStr, int> > graphAndNodeIndex = n3parser::buildRDFGraphIgnoreLiterals(filename);
-	TPt<TNodeEdgeNet<TStr, TStr> > graph = graphAndNodeIndex.Val1;
 
-	TPt<TNodeEdgeNet<TStr, WeightedPredicate> > weightedGraph = weighingStrategy.weigh(graph);
+	TPt<TNodeEdgeNet<TStr, WeightedPredicate> > weightedGraph;
+	TPair<TVec<TStr>, THash<TStr, int>> predLabelsAndIDs;
 
-	int predicateIDGloveOffset = weightedGraph->GetNodes();
+	{ //scoping to save on total memory
+		TPair<TPt<TNodeEdgeNet<TStr, TStr> >, THash<TStr, int> > graphAndNodeIndex = n3parser::buildRDFGraphIgnoreLiterals(filename);
+		TPt<TNodeEdgeNet<TStr, TStr> > graph = graphAndNodeIndex.Val1;
+		predLabelsAndIDs = computePredicateIDs(graph);
+		weightedGraph = weighingStrategy.weigh(graph);
+	}
+	THash<TStr, int> predGraphIDs = predLabelsAndIDs.Val2;
 
 	for (int i = 0; i < weightedGraph->GetNodes(); ++i) {
 
 		const int focusWordGraphID = i;
-		TPair<BCV, BCV> bcvs = computeBCAIncludingEdges(weightedGraph, focusWordGraphID, bca_alpha, bca_eps);
+		TPair<BCV, BCV> bcvs = computeBCAIncludingEdges(weightedGraph, focusWordGraphID, bca_alpha, bca_eps, predGraphIDs);
 		const int focusWordGloveID = graphIDToGloveID(i);
 		{ //scoping bcv
 			BCV bcv = bcvs.Val1;
@@ -140,7 +169,7 @@ void computeFrequenciesIncludingEdges(TStr filename, GraphWeigher& weighingStrat
 
 			for (THash<TInt, TFlt>::TIter iter = bcv_predicates.BegI(); iter < bcv_predicates.EndI(); iter++) {
 				int contextPredicateWordGraphID = iter.GetKey();
-				int contextPredicateWordGloveID = graphIDToGloveID(contextPredicateWordGraphID + predicateIDGloveOffset);
+				int contextPredicateWordGloveID = graphIDToGloveID(contextPredicateWordGraphID);
 
 				double freq = iter.GetDat();
 				CREC crec = CREC { word1:focusWordGloveID, word2:contextPredicateWordGloveID, val: freq };
@@ -157,8 +186,10 @@ void computeFrequenciesIncludingEdges(TStr filename, GraphWeigher& weighingStrat
 	}
 
 	//still need to write all predicates to the vocab file
-	for (int i = 0; i < weightedGraph->GetEdges(); ++i) {
-		fprintf(glove_vocab_file_out, "%s fakeFrequency\n", weightedGraph->GetEDat(i).Val1.CStr());
+
+	TVec<TStr> predicateLabels = predLabelsAndIDs.Val1;
+	for (TVec<TStr>::TIter it = predicateLabels.BegI(); it < predicateLabels.EndI(); it++) {
+		fprintf(glove_vocab_file_out, "%s fakeFrequency\n", it->CStr());
 	}
 }
 
@@ -178,10 +209,14 @@ void computeFrequenciesIncludingEdgesTheUltimate(TStr filename, GraphWeigher& we
 
 	TPt<TNodeEdgeNet<TStr, WeightedPredicate> > weightedGraph;
 	TPt<TNodeEdgeNet<TStr, WeightedPredicate> > weightedReverseGraph;
+	TPair<TVec<TStr>, THash<TStr, int>> predLabelsAndIDs;
 
 	{ //scoping to save on total memory
 		TPair<TPt<TNodeEdgeNet<TStr, TStr> >, THash<TStr, int> > graphAndNodeIndex = n3parser::buildRDFGraphIgnoreLiterals(filename);
 		TPt<TNodeEdgeNet<TStr, TStr> > graph = graphAndNodeIndex.Val1;
+
+		predLabelsAndIDs = computePredicateIDs(graph);
+
 		{ //scoping to save on total memory
 			TPt<TNodeEdgeNet<TStr, TStr> > reversed = reverseGraph(graph);
 			weightedReverseGraph = reverseWeighingStrategy.weigh(reversed);
@@ -189,13 +224,15 @@ void computeFrequenciesIncludingEdgesTheUltimate(TStr filename, GraphWeigher& we
 		weightedGraph = weighingStrategy.weigh(graph);
 	}
 
-	int predicateIDGloveOffset = weightedGraph->GetNodes();
+	THash<TStr, int> predGraphIDs = predLabelsAndIDs.Val2;
+
+	//int predicateIDGloveOffset = weightedGraph->GetNodes();
 
 	for (int i = 0; i < weightedGraph->GetNodes(); ++i) {
 
 		const int focusWordGraphID = i;
-		TPair<BCV, BCV> bcvs = computeBCAIncludingEdges(weightedGraph, focusWordGraphID, bca_alpha, bca_eps);
-		TPair<BCV, BCV> reversedBCVs = computeBCAIncludingEdges(weightedReverseGraph, focusWordGraphID, bca_alpha, bca_eps);
+		TPair<BCV, BCV> bcvs = computeBCAIncludingEdges(weightedGraph, focusWordGraphID, bca_alpha, bca_eps, predGraphIDs);
+		TPair<BCV, BCV> reversedBCVs = computeBCAIncludingEdges(weightedReverseGraph, focusWordGraphID, bca_alpha, bca_eps, predGraphIDs);
 
 		const int focusWordGloveID = graphIDToGloveID(i);
 		{ //scoping bcv to avoid programming err.
@@ -228,7 +265,7 @@ void computeFrequenciesIncludingEdgesTheUltimate(TStr filename, GraphWeigher& we
 
 			for (THash<TInt, TFlt>::TIter iter = combined_predictes.BegI(); iter < combined_predictes.EndI(); iter++) {
 				int contextPredicateWordGraphID = iter.GetKey();
-				int contextPredicateWordGloveID = graphIDToGloveID(contextPredicateWordGraphID + predicateIDGloveOffset);
+				int contextPredicateWordGloveID = graphIDToGloveID(contextPredicateWordGraphID);
 
 				double freq = iter.GetDat();
 				CREC crec = CREC { word1:focusWordGloveID, word2:contextPredicateWordGloveID, val: freq };
@@ -239,14 +276,15 @@ void computeFrequenciesIncludingEdgesTheUltimate(TStr filename, GraphWeigher& we
 		TStr nodeLabel = weightedGraph->GetNDat(focusWordGraphID);
 
 		fprintf(glove_vocab_file_out, "%s fakeFrequency\n", nodeLabel.CStr());
-		//if (i % 1000 == 0) {
-			cout << i << "/" << weightedGraph->GetNodes() <<  " = " << i / float(weightedGraph->GetNodes()) << endl;
-		//}
+		if (i % 1000 == 0) {
+			cout << i << "/" << weightedGraph->GetNodes() << " = " << i / float(weightedGraph->GetNodes()) << endl;
+		}
 	}
-
 	//still need to write all predicates to the vocab file
-	for (int i = 0; i < weightedGraph->GetEdges(); ++i) {
-		fprintf(glove_vocab_file_out, "%s fakeFrequency\n", weightedGraph->GetEDat(i).Val1.CStr());
+
+	TVec<TStr> predicateLabels = predLabelsAndIDs.Val1;
+	for (TVec<TStr>::TIter it = predicateLabels.BegI(); it < predicateLabels.EndI(); it++) {
+		fprintf(glove_vocab_file_out, "%s fakeFrequency\n", it->CStr());
 	}
 }
 

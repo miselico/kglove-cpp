@@ -130,7 +130,7 @@ BCV computeBCA(TPt<TNodeEdgeNet<TStr, WeightedPredicate> > network, int b_ID, do
  * The first element of the pair is the normal BCV, the second one the pagerank for the predicates
  *
  */
-TPair<BCV, BCV> computeBCAIncludingEdges(TPt<TNodeEdgeNet<TStr, WeightedPredicate> > network, int b_ID, double alpha, double eps) {
+TPair<BCV, BCV> computeBCAIncludingEdges(TPt<TNodeEdgeNet<TStr, WeightedPredicate> > network, int b_ID, double alpha, double eps, THash<TStr, int> predIDs) {
 	BCAQueue Q;
 	BCV p;
 	BCV edgePagerank;
@@ -152,8 +152,9 @@ TPair<BCV, BCV> computeBCAIncludingEdges(TPt<TNodeEdgeNet<TStr, WeightedPredicat
 			WeightedPredicate edgeData = node_i.GetOutEDat(outEdge);
 			double edgeWeight = edgeData.W();
 			double paintToJ = (1.0 - alpha) * w * edgeWeight;
-			int outEdgeID = node_i.GetOutEId(outEdge);
-			edgePagerank.fixPaint(outEdgeID, paintToJ);
+			TStr outEdgeLabel = node_i.GetOutEDat(outEdge).P();
+			int outEdgeBCVID = predIDs.GetDat(outEdgeLabel);
+			edgePagerank.fixPaint(outEdgeBCVID, paintToJ);
 			Q.addPaintTo(j, paintToJ);
 		}
 	}
