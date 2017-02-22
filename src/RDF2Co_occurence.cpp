@@ -116,6 +116,10 @@ TPair<TVec<TStr>, THash<TStr, int>> computePredicateIDs(TPt<TNodeEdgeNet<TStr, T
 	return TPair<TVec<TStr>, THash<TStr, int>>(labels, preds);
 }
 
+namespace {
+static TStr RDF_TYPE("<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>");
+static TStr OWL_THING("<http://www.w3.org/2002/07/owl#Thing>");
+}
 /**
  *
  * Compute the BCA score for each pair in the graph under the given weighing strategy.
@@ -126,7 +130,8 @@ TPair<TVec<TStr>, THash<TStr, int>> computePredicateIDs(TPt<TNodeEdgeNet<TStr, T
  *
  *
  */
-void computeFrequenciesIncludingEdges(TStr filename, GraphWeigher& weighingStrategy, double bca_alpha, double bca_eps, FILE * glove_input_file_out, FILE * glove_vocab_file_out, bool normalize) {
+void computeFrequenciesIncludingEdges(TStr filename, GraphWeigher& weighingStrategy, double bca_alpha, double bca_eps, FILE * glove_input_file_out, FILE * glove_vocab_file_out, bool normalize,
+		bool onlyEntities) {
 
 	TPt<TNodeEdgeNet<TStr, WeightedPredicate> > weightedGraph;
 	TPair<TVec<TStr>, THash<TStr, int>> predLabelsAndIDs;
@@ -140,7 +145,27 @@ void computeFrequenciesIncludingEdges(TStr filename, GraphWeigher& weighingStrat
 	THash<TStr, int> predGraphIDs = predLabelsAndIDs.Val2;
 
 	for (int i = 0; i < weightedGraph->GetNodes(); ++i) {
+		TNodeEdgeNet<TStr, WeightedPredicate>::TNodeI candidateNode = weightedGraph->GetNI(i);
+//		//only take specific one:
+//		if (candidateNode.GetDat() != "<http://dbpedia.org/ontology/Province>"){
+//			continue;
+//		}
 
+		if (onlyEntities) {
+			bool accept = false;
+			for (int outEdgeNr = 0; outEdgeNr < candidateNode.GetOutDeg(); ++outEdgeNr) {
+				TStr predicate = candidateNode.GetOutEDat(outEdgeNr).P();
+				if (predicate == RDF_TYPE) {
+					TStr object = candidateNode.GetOutNDat(outEdgeNr);
+					if (object == OWL_THING) {
+						accept = true;
+					}
+				}
+			}
+			if (!accept) {
+				continue;
+			}
+		}
 		const int focusWordGraphID = i;
 		TPair<BCV, BCV> bcvs = computeBCAIncludingEdges(weightedGraph, focusWordGraphID, bca_alpha, bca_eps, predGraphIDs);
 		const int focusWordGloveID = graphIDToGloveID(i);
@@ -372,7 +397,8 @@ void performExperiments() {
 	//computeFrequenciesPushBCA(file, weigher, outfile);
 
 	bool normalize = true;
-	//computeFrequenciesIncludingEdges(file, weigher, 0.80, 0.0039, glove_input_file_out, glove_vocab_file_out, normalize);
+	bool onlyEntities = false;
+	//computeFrequenciesIncludingEdges(file, weigher, 0.80, 0.0039, glove_input_file_out, glove_vocab_file_out, normalize, onlyEntities);
 	//computeFrequencies(file, weigher, 0.50, 0.05, glove_input_file_out, glove_vocab_file_out);
 
 	computeFrequenciesIncludingEdgesTheUltimate(file, weigher, weigher, 0.70, 0.0039, glove_input_file_out, glove_vocab_file_out, normalize);
