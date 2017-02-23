@@ -213,7 +213,11 @@ void computeFrequenciesIncludingEdges(TStr filename, GraphWeigher& weighingStrat
 	}
 	THash<TStr, int> predGraphIDs = predLabelsAndIDs.Val2;
 
-	for (int i = 0; i < weightedGraph->GetNodes(); ++i) {
+	THash<TInt, BCV> bcvCache;
+
+	for (TVec<TInt>::TIter iter = order.BegI(); iter < order.EndI(); iter++) {
+
+		int i = iter->Val;
 		TNodeEdgeNet<TStr, WeightedPredicate>::TNodeI candidateNode = weightedGraph->GetNI(i);
 //		//only take specific one:
 //		if (candidateNode.GetDat() != "<http://dbpedia.org/ontology/Province>"){
@@ -236,7 +240,7 @@ void computeFrequenciesIncludingEdges(TStr filename, GraphWeigher& weighingStrat
 			}
 		}
 		const int focusWordGraphID = i;
-		BCV combinedbcv = computeBCAIncludingEdges(weightedGraph, focusWordGraphID, bca_alpha, bca_eps, predGraphIDs);
+		BCV combinedbcv = computeBCAIncludingEdgesCached(weightedGraph, focusWordGraphID, bca_alpha, bca_eps, predGraphIDs, bcvCache);
 		const int focusWordGloveID = graphIDToGloveID(i);
 		if (normalize) {
 			combinedbcv.removeEntry(i);
@@ -414,15 +418,13 @@ void performExperiments() {
 	FILE* glove_input_file_out = fopen("glove_input_file_out.bin", "w");
 	FILE* glove_vocab_file_out = fopen("glove_vocab_file_out", "w");
 
-
 	testBCAComputeOrderSpeed(file);
 
 //InversePredicateFrequencyWeigher weigher = InversePredicateFrequencyWeigher();
 
-//	UniformWeigher weigher;
+	UniformWeigher weigher;
 
 //computeFrequenciesPushBCA(file, weigher, outfile);
-
 //	bool normalize = true;
 //	bool onlyEntities = false;
 //	computeFrequenciesIncludingEdges(file, weigher, 0.80, 0.0039, glove_input_file_out, glove_vocab_file_out, normalize, onlyEntities);

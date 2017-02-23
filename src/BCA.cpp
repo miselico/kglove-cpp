@@ -122,7 +122,6 @@ BCV computeBCA(TPt<TNodeEdgeNet<TStr, WeightedPredicate> > network, int b_ID, do
 
 }
 
-
 /**
  * Compute the bookmarking coloring algorithm (≃ personalized page rank) between node b_ID and all other nodes in the graph. Using teleportation parameter alpha and cut-off value eps.
  *
@@ -161,7 +160,49 @@ BCV computeBCAIncludingEdges(TPt<TNodeEdgeNet<TStr, WeightedPredicate> > network
 	return p;
 }
 
+BCV computeBCAIncludingEdgesCached(TPt<TNodeEdgeNet<TStr, WeightedPredicate> > network, int b_ID, double alpha, double eps, THash<TStr, int> predIDs, THash<TInt, BCV> & bcvCache) {
+	BCAQueue Q;
+	BCV p;
+	Q.addPaintTo(b_ID, 1.0);
 
+	while (!Q.empty()) {
+		TPair<TInt, TFlt> element = Q.pop();
+		int i = element.Val1;
+		double w = element.Val2;
+		BCV precomputed;
+		if (bcvCache.IsKeyGetDat(i, precomputed)) {
+			//there is a precomputed entry
+			//TODO double check this:
+			for (THash<TInt, TFlt>::TIter iter = precomputed.BegI(); iter < precomputed.EndI(); iter++) {
+				double scaled = iter.GetDat() * w;
+				//I think this multiplication is needed because the paint is fixed first and only then w is compared to eps.
+				if (scaled > (eps * alpha)) {
+					p.fixPaint(iter.GetKey(), scaled);
+				}
+			}
+		} else {
+
+			p.fixPaint(i, alpha * w);
+			if (w < eps) {
+				continue;
+			}
+			TNodeEdgeNet<TStr, WeightedPredicate>::TNodeI node_i = network->GetNI(i);
+			int node_i_outdeg = node_i.GetOutDeg();
+
+			for (int outEdge = 0; outEdge < node_i_outdeg; ++outEdge) {
+				int j = node_i.GetOutNId(outEdge);
+				WeightedPredicate edgeData = node_i.GetOutEDat(outEdge);
+				double edgeWeight = edgeData.W();
+				double paintToJ = (1.0 - alpha) * w * edgeWeight;
+				TStr outEdgeLabel = node_i.GetOutEDat(outEdge).P();
+				int outEdgeBCVID = predIDs.GetDat(outEdgeLabel);
+				p.fixPaint(outEdgeBCVID, paintToJ);
+				Q.addPaintTo(j, paintToJ);
+			}
+		}
+	}
+	return p;
+}
 
 //From here on implementation of pushed Bookmark Coloring Algorithm
 
