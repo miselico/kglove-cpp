@@ -167,41 +167,20 @@ void computeFrequenciesIncludingEdges(TStr filename, GraphWeigher& weighingStrat
 			}
 		}
 		const int focusWordGraphID = i;
-		TPair<BCV, BCV> bcvs = computeBCAIncludingEdges(weightedGraph, focusWordGraphID, bca_alpha, bca_eps, predGraphIDs);
+		BCV combinedbcv = computeBCAIncludingEdges(weightedGraph, focusWordGraphID, bca_alpha, bca_eps, predGraphIDs);
 		const int focusWordGloveID = graphIDToGloveID(i);
-		{ //scoping bcv
-			BCV bcv = bcvs.Val1;
-			if (normalize) {
-				bcv.removeEntry(i);
-				bcv.normalizeInPlace();
-			}
-
-			for (THash<TInt, TFlt>::TIter iter = bcv.BegI(); iter < bcv.EndI(); iter++) {
-				int contextWordGraphID = iter.GetKey();
-				int contextWordGloveID = graphIDToGloveID(contextWordGraphID);
-				double freq = iter.GetDat();
-				CREC crec = CREC { word1:focusWordGloveID, word2:contextWordGloveID, val: freq };
-				fwrite(&crec, sizeof(CREC), 1, glove_input_file_out);
-			}
+		if (normalize) {
+			combinedbcv.removeEntry(i);
+			combinedbcv.normalizeInPlace();
 		}
-		{ //scoping bcv_predicates
-			BCV bcv_predicates = bcvs.Val2;
-
-			if (normalize) {
-				//There is no need to remove anything, as the node under consideration is not in the predicate list.
-				bcv_predicates.normalizeInPlace();
-			}
-
-			for (THash<TInt, TFlt>::TIter iter = bcv_predicates.BegI(); iter < bcv_predicates.EndI(); iter++) {
-				int contextPredicateWordGraphID = iter.GetKey();
-				int contextPredicateWordGloveID = graphIDToGloveID(contextPredicateWordGraphID);
-
-				double freq = iter.GetDat();
-				CREC crec = CREC { word1:focusWordGloveID, word2:contextPredicateWordGloveID, val: freq };
-				fwrite(&crec, sizeof(CREC), 1, glove_input_file_out);
-			}
-
+		for (THash<TInt, TFlt>::TIter iter = combinedbcv.BegI(); iter < combinedbcv.EndI(); iter++) {
+			int contextWordGraphID = iter.GetKey();
+			int contextWordGloveID = graphIDToGloveID(contextWordGraphID);
+			double freq = iter.GetDat();
+			CREC crec = CREC { word1:focusWordGloveID, word2:contextWordGloveID, val: freq };
+			fwrite(&crec, sizeof(CREC), 1, glove_input_file_out);
 		}
+
 		TStr nodeLabel = weightedGraph->GetNDat(focusWordGraphID);
 
 		fprintf(glove_vocab_file_out, "%s fakeFrequency\n", nodeLabel.CStr());
@@ -256,48 +235,24 @@ void computeFrequenciesIncludingEdgesTheUltimate(TStr filename, GraphWeigher& we
 	for (int i = 0; i < weightedGraph->GetNodes(); ++i) {
 
 		const int focusWordGraphID = i;
-		TPair<BCV, BCV> bcvs = computeBCAIncludingEdges(weightedGraph, focusWordGraphID, bca_alpha, bca_eps, predGraphIDs);
-		TPair<BCV, BCV> reversedBCVs = computeBCAIncludingEdges(weightedReverseGraph, focusWordGraphID, bca_alpha, bca_eps, predGraphIDs);
+		BCV combinedbcv = computeBCAIncludingEdges(weightedGraph, focusWordGraphID, bca_alpha, bca_eps, predGraphIDs);
+		BCV combinedreversedBCVs = computeBCAIncludingEdges(weightedReverseGraph, focusWordGraphID, bca_alpha, bca_eps, predGraphIDs);
 
 		const int focusWordGloveID = graphIDToGloveID(i);
-		{ //scoping bcv to avoid programming err.
-			BCV partialbcv = bcvs.Val1;
-			BCV partialreversedBCV = reversedBCVs.Val1;
-			partialbcv.add(partialreversedBCV);
-			if (normalize) {
-				partialbcv.removeEntry(i);
-				partialbcv.normalizeInPlace();
-			}
-			BCV combined = partialbcv;
+		combinedbcv.add(combinedreversedBCVs);
 
-			for (THash<TInt, TFlt>::TIter iter = combined.BegI(); iter < combined.EndI(); iter++) {
-				int contextWordGraphID = iter.GetKey();
-				int contextWordGloveID = graphIDToGloveID(contextWordGraphID);
-				double freq = iter.GetDat();
-				CREC crec = CREC { word1:focusWordGloveID, word2:contextWordGloveID, val: freq };
-				fwrite(&crec, sizeof(CREC), 1, glove_input_file_out);
-			}
+		if (normalize) {
+			combinedbcv.removeEntry(i);
+			combinedbcv.normalizeInPlace();
 		}
-		{ //scoping bcv_predicates to avoid programming err.
-			BCV partialbcv_predicates = bcvs.Val2;
-			BCV partial_reversed_bcv_predicates = reversedBCVs.Val2;
-			partialbcv_predicates.add(partial_reversed_bcv_predicates);
-			if (normalize) {
-				//There is no need to remove anything, as the node under consideration is not in the predicate list.
-				partialbcv_predicates.normalizeInPlace();
-			}
-			BCV combined_predictes = partialbcv_predicates;
-
-			for (THash<TInt, TFlt>::TIter iter = combined_predictes.BegI(); iter < combined_predictes.EndI(); iter++) {
-				int contextPredicateWordGraphID = iter.GetKey();
-				int contextPredicateWordGloveID = graphIDToGloveID(contextPredicateWordGraphID);
-
-				double freq = iter.GetDat();
-				CREC crec = CREC { word1:focusWordGloveID, word2:contextPredicateWordGloveID, val: freq };
-				fwrite(&crec, sizeof(CREC), 1, glove_input_file_out);
-			}
-
+		for (THash<TInt, TFlt>::TIter iter = combinedbcv.BegI(); iter < combinedbcv.EndI(); iter++) {
+			int contextWordGraphID = iter.GetKey();
+			int contextWordGloveID = graphIDToGloveID(contextWordGraphID);
+			double freq = iter.GetDat();
+			CREC crec = CREC { word1:focusWordGloveID, word2:contextWordGloveID, val: freq };
+			fwrite(&crec, sizeof(CREC), 1, glove_input_file_out);
 		}
+
 		TStr nodeLabel = weightedGraph->GetNDat(focusWordGraphID);
 
 		fprintf(glove_vocab_file_out, "%s fakeFrequency\n", nodeLabel.CStr());
@@ -398,10 +353,10 @@ void performExperiments() {
 
 	bool normalize = true;
 	bool onlyEntities = false;
-	//computeFrequenciesIncludingEdges(file, weigher, 0.80, 0.0039, glove_input_file_out, glove_vocab_file_out, normalize, onlyEntities);
+	computeFrequenciesIncludingEdges(file, weigher, 0.80, 0.0039, glove_input_file_out, glove_vocab_file_out, normalize, onlyEntities);
 	//computeFrequencies(file, weigher, 0.50, 0.05, glove_input_file_out, glove_vocab_file_out);
 
-	computeFrequenciesIncludingEdgesTheUltimate(file, weigher, weigher, 0.70, 0.0039, glove_input_file_out, glove_vocab_file_out, normalize);
+	//computeFrequenciesIncludingEdgesTheUltimate(file, weigher, weigher, 0.70, 0.0039, glove_input_file_out, glove_vocab_file_out, normalize);
 
 	fclose(glove_input_file_out);
 	fclose(glove_vocab_file_out);

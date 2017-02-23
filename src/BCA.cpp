@@ -122,6 +122,7 @@ BCV computeBCA(TPt<TNodeEdgeNet<TStr, WeightedPredicate> > network, int b_ID, do
 
 }
 
+
 /**
  * Compute the bookmarking coloring algorithm (≃ personalized page rank) between node b_ID and all other nodes in the graph. Using teleportation parameter alpha and cut-off value eps.
  *
@@ -130,10 +131,9 @@ BCV computeBCA(TPt<TNodeEdgeNet<TStr, WeightedPredicate> > network, int b_ID, do
  * The first element of the pair is the normal BCV, the second one the pagerank for the predicates
  *
  */
-TPair<BCV, BCV> computeBCAIncludingEdges(TPt<TNodeEdgeNet<TStr, WeightedPredicate> > network, int b_ID, double alpha, double eps, THash<TStr, int> predIDs) {
+BCV computeBCAIncludingEdges(TPt<TNodeEdgeNet<TStr, WeightedPredicate> > network, int b_ID, double alpha, double eps, THash<TStr, int> predIDs) {
 	BCAQueue Q;
 	BCV p;
-	BCV edgePagerank;
 	Q.addPaintTo(b_ID, 1.0);
 
 	while (!Q.empty()) {
@@ -154,13 +154,14 @@ TPair<BCV, BCV> computeBCAIncludingEdges(TPt<TNodeEdgeNet<TStr, WeightedPredicat
 			double paintToJ = (1.0 - alpha) * w * edgeWeight;
 			TStr outEdgeLabel = node_i.GetOutEDat(outEdge).P();
 			int outEdgeBCVID = predIDs.GetDat(outEdgeLabel);
-			edgePagerank.fixPaint(outEdgeBCVID, paintToJ);
+			p.fixPaint(outEdgeBCVID, paintToJ);
 			Q.addPaintTo(j, paintToJ);
 		}
 	}
-	return TPair<BCV, BCV>(p, edgePagerank);
-
+	return p;
 }
+
+
 
 //From here on implementation of pushed Bookmark Coloring Algorithm
 
