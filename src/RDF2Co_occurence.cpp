@@ -253,7 +253,7 @@ TVec<TInt> determineBCVcomputeOrder(TPt<TNodeEdgeNet<TStr, TStr> > baseGraph) {
 		prunable->DelNode(k);
 		finalOrder.Add(k);
 	}
-	IAssert (startSize == finalOrder.Len());
+	IAssert(startSize == finalOrder.Len());
 	return finalOrder;
 }
 
@@ -296,8 +296,8 @@ void computeFrequenciesIncludingEdges(TStr filename, GraphWeigher& weighingStrat
 
 	THash<TInt, BCV> bcvCache;
 
+	int counter = 0;
 	for (TVec<TInt>::TIter iter = order.BegI(); iter < order.EndI(); iter++) {
-
 		int i = iter->Val;
 		TNodeEdgeNet<TStr, WeightedPredicate>::TNodeI candidateNode = weightedGraph->GetNI(i);
 //		//only take specific one:
@@ -332,14 +332,16 @@ void computeFrequenciesIncludingEdges(TStr filename, GraphWeigher& weighingStrat
 			int contextWordGloveID = graphIDToGloveID(contextWordGraphID);
 			double freq = iter.GetDat();
 			CREC crec = CREC { word1:focusWordGloveID, word2:contextWordGloveID, val: freq };
+			//CREC crec = CREC { word1:contextWordGloveID, word2:focusWordGloveID, val: freq };
 			fwrite(&crec, sizeof(CREC), 1, glove_input_file_out);
 		}
 
 		TStr nodeLabel = weightedGraph->GetNDat(focusWordGraphID);
 
 		fprintf(glove_vocab_file_out, "%s fakeFrequency\n", nodeLabel.CStr());
-		if (i % 1000 == 0) {
-			cout << i / float(weightedGraph->GetNodes()) << endl;
+		counter++;
+		if ((counter % 10000) == 0) {
+			cout << "Processed " << counter << "/" << order.Len() << " BCV computations" << endl;
 		}
 	}
 
@@ -503,7 +505,7 @@ void performExperiments() {
 
 //InversePredicateFrequencyWeigher weigher = InversePredicateFrequencyWeigher();
 
-//	UniformWeigher weigher;
+	UniformWeigher weigher;
 
 //computeFrequenciesPushBCA(file, weigher, outfile);
 //	bool normalize = true;

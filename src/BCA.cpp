@@ -7,6 +7,7 @@
 
 #include "BCA.h"
 #include "doublePriorityQueue.h"
+#include <iostream>
 
 using namespace std;
 
@@ -175,13 +176,13 @@ BCV computeBCAIncludingEdgesCached(TPt<TNodeEdgeNet<TStr, WeightedPredicate> > n
 			//TODO double check this:
 			for (THash<TInt, TFlt>::TIter iter = precomputed.BegI(); iter < precomputed.EndI(); iter++) {
 				double scaled = iter.GetDat() * w;
-				//I think this multiplication is needed because the paint is fixed first and only then w is compared to eps.
+				//Here the algorithm might have a slight difference with the original version.
+				//The problem is that we cannot know the threshold directly because of the weights in the graph, this seems to be an okay estimation
 				if (scaled > (eps * alpha)) {
 					p.fixPaint(iter.GetKey(), scaled);
 				}
 			}
 		} else {
-
 			p.fixPaint(i, alpha * w);
 			if (w < eps) {
 				continue;
@@ -201,6 +202,7 @@ BCV computeBCAIncludingEdgesCached(TPt<TNodeEdgeNet<TStr, WeightedPredicate> > n
 			}
 		}
 	}
+	bcvCache.AddDat(b_ID, p);
 	return p;
 }
 
