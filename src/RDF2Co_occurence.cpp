@@ -128,7 +128,7 @@ static TStr OWL_THING("<http://www.w3.org/2002/07/owl#Thing>");
  * 2. if no such node exists, then the node with highest in degree is selected
  *
  */
-TVec<TInt> determineBCVcomputeOrder(TPt<TNodeEdgeNet<TStr, TStr> > baseGraph) {
+TVec<TInt> determineBCVcomputeOrderOLD(TPt<TNodeEdgeNet<TStr, TStr> > baseGraph) {
 
 	TPt<TNEGraph> prunable = TNEGraph::New();
 	for (TNodeEdgeNet<TStr, TStr>::TNodeI NI = baseGraph->BegNI(); NI < baseGraph->EndNI(); NI++) {
@@ -174,6 +174,87 @@ TVec<TInt> determineBCVcomputeOrder(TPt<TNodeEdgeNet<TStr, TStr> > baseGraph) {
 		prunable->DelNode(withHighestInDegree);
 	}
 	return result;
+}
+
+/**
+ * Attempts to determine the order in which most BCA computations can be reused.
+ * This is using the heuristic that
+ *
+ * 1. nodes with zero out degree (or one for which all outgoing edges points to nodes with precomputed BCAs) should always be computed first
+ * 2. if no such node exists, then the node with highest in degree is selected
+ *
+ */
+TVec<TInt> determineBCVcomputeOrder(TPt<TNodeEdgeNet<TStr, TStr> > baseGraph) {
+	TPt<TNEGraph> prunable = TNEGraph::New();
+	for (TNodeEdgeNet<TStr, TStr>::TNodeI NI = baseGraph->BegNI(); NI < baseGraph->EndNI(); NI++) {
+		prunable->AddNode(NI.GetId());
+	}
+	for (TNodeEdgeNet<TStr, TStr>::TEdgeI EI = baseGraph->BegEI(); EI < baseGraph->EndEI(); EI++) {
+		prunable->AddEdge(EI.GetSrcNId(), EI.GetDstNId());
+	}
+	int startSize = baseGraph->GetNodes();
+	baseGraph = NULL; //making sure we do not accidentally write to the original
+	TVec<TInt> finalOrder;
+	THashSet<TInt> zeroOutDegNodes;
+
+	TMaxPriorityQueue<TInt> highestInDegree;
+	//set-up the zeroOutnodes and highestInDegree
+	for (TNEGraph::TNodeI node = prunable->BegNI(); node < prunable->EndNI(); node++) {
+		if (node.GetOutDeg() == 0) {
+			zeroOutDegNodes.AddKey(node.GetId());
+		} else {
+			//if the outdegree is 0, there is no need to get the node to the highestInDegree as it would be removed immediately again
+			highestInDegree.Insert(node.GetId(), node.GetInDeg());
+		}
+	}
+	//algo start
+	while (prunable->GetNodes() > 0) {
+		while (zeroOutDegNodes.Len() != 0) {
+			const TInt n = *(zeroOutDegNodes.BegI());
+			zeroOutDegNodes.DelKey(n);
+			//n will be removed from the graph. Add all nodes which will get zero out degree to the set
+			TNEGraph::TNodeI niter = prunable->GetNI(n);
+			for (int inEdgeNumber = 0; inEdgeNumber < niter.GetInDeg(); inEdgeNumber++) {
+				int mid = niter.GetInNId(inEdgeNumber);
+				TNEGraph::TNodeI m = prunable->GetNI(mid);
+				if (m.GetOutDeg() == 1) {
+					zeroOutDegNodes.AddKey(m.GetId());
+				}
+			}
+			//set indegree of n to 0 in PQueueu. PQueue does not support direct removal
+			highestInDegree.SetPriority(n, 0.0);
+			//finalize
+			prunable->DelNode(n);
+			finalOrder.Add(n);
+		}
+		if (prunable->GetNodes() == 0) {
+			break;
+		}
+
+		//there are no nodes with zero out degree in the graph left. Attempt to break a cycle by removing the one with highest in degree
+		TInt k = highestInDegree.PopMax();
+		//add all nodes which will get a zero out degree to set
+		TNEGraph::TNodeI kiter = prunable->GetNI(k);
+		IAssert(kiter.GetOutDeg() > 0);
+		for (int inEdgeNumber = 0; inEdgeNumber < kiter.GetInDeg(); inEdgeNumber++) {
+			int lid = kiter.GetInNId(inEdgeNumber);
+			TNEGraph::TNodeI l = prunable->GetNI(lid);
+			if (l.GetOutDeg() == 1) {
+				zeroOutDegNodes.AddKey(l.GetId());
+			}
+		}
+		//update the priorities of all nodes k is pointing to
+		for (int outEdgeNumber = 0; outEdgeNumber < kiter.GetOutDeg(); outEdgeNumber++) {
+			int lid = kiter.GetOutNId(outEdgeNumber);
+			TNEGraph::TNodeI l = prunable->GetNI(lid);
+			highestInDegree.SetPriority(lid, l.GetInDeg() - 1);
+		}
+		//finalize
+		prunable->DelNode(k);
+		finalOrder.Add(k);
+	}
+	IAssert (startSize == finalOrder.Len());
+	return finalOrder;
 }
 
 void testBCAComputeOrderSpeed(TStr filename) {
@@ -422,7 +503,7 @@ void performExperiments() {
 
 //InversePredicateFrequencyWeigher weigher = InversePredicateFrequencyWeigher();
 
-	UniformWeigher weigher;
+//	UniformWeigher weigher;
 
 //computeFrequenciesPushBCA(file, weigher, outfile);
 //	bool normalize = true;
