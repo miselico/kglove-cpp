@@ -185,27 +185,56 @@ TVec<TInt> determineBCVcomputeOrderOLD(TPt<TNodeEdgeNet<TStr, TStr> > baseGraph)
  *
  */
 TVec<TInt> determineBCVcomputeOrder(TPt<TNodeEdgeNet<TStr, TStr> > baseGraph) {
-	TPt<TNEGraph> prunable = TNEGraph::New();
+
+	// TNGraph: directed graph (single directed edge between an ordered pair of nodes)
+	//We throw away the multiplicity of edges between two nodes. For the BCA caching it does not make a difference whether it is needed once or more times by the same other node
+	//We also remove all self edges
+	TPt<TNGraph> prunable = TNGraph::New();
 	for (TNodeEdgeNet<TStr, TStr>::TNodeI NI = baseGraph->BegNI(); NI < baseGraph->EndNI(); NI++) {
 		prunable->AddNode(NI.GetId());
 	}
 	for (TNodeEdgeNet<TStr, TStr>::TEdgeI EI = baseGraph->BegEI(); EI < baseGraph->EndEI(); EI++) {
-		prunable->AddEdge(EI.GetSrcNId(), EI.GetDstNId());
+		int src = EI.GetSrcNId();
+		int dst = EI.GetDstNId();
+		if (src != dst) {
+			prunable->AddEdge(src, dst);
+		}
 	}
 	int startSize = baseGraph->GetNodes();
 	baseGraph = NULL; //making sure we do not accidentally write to the original
 	TVec<TInt> finalOrder;
 	THashSet<TInt> zeroOutDegNodes;
-
-	TMaxPriorityQueue<TInt> highestInDegree;
-	//set-up the zeroOutnodes and highestInDegree
-	for (TNEGraph::TNodeI node = prunable->BegNI(); node < prunable->EndNI(); node++) {
+	//we do a first quicker check to eliminate all nodes which are not part of a cycle
+	for (TNGraph::TNodeI node = prunable->BegNI(); node < prunable->EndNI(); node++) {
 		if (node.GetOutDeg() == 0) {
 			zeroOutDegNodes.AddKey(node.GetId());
-		} else {
-			//if the outdegree is 0, there is no need to get the node to the highestInDegree as it would be removed immediately again
-			highestInDegree.Insert(node.GetId(), node.GetInDeg());
 		}
+	}
+	while (zeroOutDegNodes.Len() != 0) {
+		const TInt n = *(zeroOutDegNodes.BegI());
+		zeroOutDegNodes.DelKey(n);
+		//n will be removed from the graph. Add all nodes which will get zero out degree to the set
+		TNGraph::TNodeI niter = prunable->GetNI(n);
+		for (int inEdgeNumber = 0; inEdgeNumber < niter.GetInDeg(); inEdgeNumber++) {
+			int mid = niter.GetInNId(inEdgeNumber);
+			TNGraph::TNodeI m = prunable->GetNI(mid);
+			//it is enough to check the outdegree. The TNGraph type guarantees that there is only one directed edge between an ordered pair of nodes.
+			if (m.GetOutDeg() == 1) {
+				zeroOutDegNodes.AddKey(m.GetId());
+			}
+		}
+		//finalize
+		prunable->DelNode(n);
+		finalOrder.Add(n);
+	}
+	//now the more general case including loops is handled
+
+	TMaxPriorityQueue<TInt> highestInDegree;
+	//set-up the  highestInDegree PQ,
+	for (TNGraph::TNodeI node = prunable->BegNI(); node < prunable->EndNI(); node++) {
+		//if the outdegree is 0, there is no need to get the node to the highestInDegree as it would be removed immediately again, but there are no zeroOutDegreeNodes at this point
+		//We add one to indicate that even a node with 0 in degree is still a valid node.
+		highestInDegree.Insert(node.GetId(), node.GetInDeg() + 1);
 	}
 	//algo start
 	while (prunable->GetNodes() > 0) {
@@ -213,10 +242,11 @@ TVec<TInt> determineBCVcomputeOrder(TPt<TNodeEdgeNet<TStr, TStr> > baseGraph) {
 			const TInt n = *(zeroOutDegNodes.BegI());
 			zeroOutDegNodes.DelKey(n);
 			//n will be removed from the graph. Add all nodes which will get zero out degree to the set
-			TNEGraph::TNodeI niter = prunable->GetNI(n);
+			TNGraph::TNodeI niter = prunable->GetNI(n);
 			for (int inEdgeNumber = 0; inEdgeNumber < niter.GetInDeg(); inEdgeNumber++) {
 				int mid = niter.GetInNId(inEdgeNumber);
-				TNEGraph::TNodeI m = prunable->GetNI(mid);
+				TNGraph::TNodeI m = prunable->GetNI(mid);
+				//it is enough to check the outdegree. The TNGraph type guarantees that there is only one directed edge between an ordered pair of nodes.
 				if (m.GetOutDeg() == 1) {
 					zeroOutDegNodes.AddKey(m.GetId());
 				}
@@ -230,15 +260,18 @@ TVec<TInt> determineBCVcomputeOrder(TPt<TNodeEdgeNet<TStr, TStr> > baseGraph) {
 		if (prunable->GetNodes() == 0) {
 			break;
 		}
-
+		IAssert(highestInDegree.Size() > 0);
 		//there are no nodes with zero out degree in the graph left. Attempt to break a cycle by removing the one with highest in degree
+		IAssert(highestInDegree.GetMaxPriority() > 0.0);
+		cerr.flush();
 		TInt k = highestInDegree.PopMax();
 		//add all nodes which will get a zero out degree to set
-		TNEGraph::TNodeI kiter = prunable->GetNI(k);
+		IAssert(prunable->IsNode(k));
+		TNGraph::TNodeI kiter = prunable->GetNI(k);
 		IAssert(kiter.GetOutDeg() > 0);
 		for (int inEdgeNumber = 0; inEdgeNumber < kiter.GetInDeg(); inEdgeNumber++) {
 			int lid = kiter.GetInNId(inEdgeNumber);
-			TNEGraph::TNodeI l = prunable->GetNI(lid);
+			TNGraph::TNodeI l = prunable->GetNI(lid);
 			if (l.GetOutDeg() == 1) {
 				zeroOutDegNodes.AddKey(l.GetId());
 			}
@@ -246,8 +279,10 @@ TVec<TInt> determineBCVcomputeOrder(TPt<TNodeEdgeNet<TStr, TStr> > baseGraph) {
 		//update the priorities of all nodes k is pointing to
 		for (int outEdgeNumber = 0; outEdgeNumber < kiter.GetOutDeg(); outEdgeNumber++) {
 			int lid = kiter.GetOutNId(outEdgeNumber);
-			TNEGraph::TNodeI l = prunable->GetNI(lid);
-			highestInDegree.SetPriority(lid, l.GetInDeg() - 1);
+			TNGraph::TNodeI l = prunable->GetNI(lid);
+			//We add one to indicate that even a node with 0 in degree is still a valid node.
+			//Here we use the fact that there are no self edges in the graph. Otherwise we have to make sure that lid != k
+			highestInDegree.SetPriority(lid, l.GetInDeg() - 1 + 1);
 		}
 		//finalize
 		prunable->DelNode(k);
@@ -264,6 +299,9 @@ void testBCAComputeOrderSpeed(TStr filename) {
 	TVec<TInt, int> order;
 	order = determineBCVcomputeOrder(graph);
 	cout << "end determining BCV compute order" << endl;
+//	for(TVec<TInt>::TIter iter = order.BegI(); iter < order.EndI(); iter++){
+//		cout << graph->GetNDat(iter->Val).CStr() << endl;
+//	}
 }
 
 }
@@ -492,11 +530,11 @@ void computeFrequenciesPushBCA(TStr filename, GraphWeigher& weighingStrategy, FI
 
 namespace RDF2CO {
 void performExperiments() {
-//TStr file = "wikidata-simple-statements-1_000000-sample.nt";
+//	TStr file = "wikidata-simple-statements-1_000000-sample.nt";
 //TStr file = "sample-wikidata-terms-fragment.nt";
 //TStr file = "sample-wikidata-terms.nt";
 	TStr file = "../../datasets/aifb_fixed_complete.nt";
-//	TStr file = "SmallTest4.nt";
+	//TStr file = "SmallTest8_multiplePO.nt";
 
 	FILE* glove_input_file_out = fopen("glove_input_file_out.bin", "w");
 	FILE* glove_vocab_file_out = fopen("glove_vocab_file_out", "w");
