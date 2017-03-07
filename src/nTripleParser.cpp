@@ -6,6 +6,7 @@
  */
 
 #include "nTripleParser.h"
+#include "PrintTime.h"
 
 using namespace std;
 
@@ -125,7 +126,7 @@ TPair<TPt<TNodeEdgeNet<TStr, TStr> >, THash<TStr, int> > buildRDFGraphInternal(T
 	while (FInPt->GetNextLn(line)) {
 		count++;
 		if (count % 1000000 == 0) {
-			cout << "Processed " << count << " lines" << endl;
+			cout << currentTime() << "Processed " << count << " lines" << endl;
 		}
 		if (line.IsWs()) {
 			continue;
