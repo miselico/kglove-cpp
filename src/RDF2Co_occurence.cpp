@@ -339,10 +339,13 @@ TVec<TInt> determineBCVcomputeOrderOptimized(TPt<TNodeEdgeNet<TStr, TStr> > base
 	// TNGraph: directed graph (single directed edge between an ordered pair of nodes)
 	//We throw away the multiplicity of edges between two nodes. For the BCA caching it does not make a difference whether it is needed once or more times by the same other node
 	//We also remove all self edges
+	cout << currentTime() << "copying graph" << endl;
 	TPt<TNGraph> prunable = TNGraph::New();
+	prunable->Reserve(baseGraph->GetNodes(), baseGraph->GetEdges());
 	for (TNodeEdgeNet<TStr, TStr>::TNodeI NI = baseGraph->BegNI(); NI < baseGraph->EndNI(); NI++) {
 		prunable->AddNode(NI.GetId());
 	}
+	cout << currentTime() << "copying graph - nodes copied" << endl;
 	for (TNodeEdgeNet<TStr, TStr>::TEdgeI EI = baseGraph->BegEI(); EI < baseGraph->EndEI(); EI++) {
 		int src = EI.GetSrcNId();
 		int dst = EI.GetDstNId();
@@ -352,6 +355,7 @@ TVec<TInt> determineBCVcomputeOrderOptimized(TPt<TNodeEdgeNet<TStr, TStr> > base
 	}
 	const int startSize = baseGraph->GetNodes();
 	baseGraph = NULL; //making sure we do not accidentally write to the original
+	cout << currentTime() << "graph copied" << endl;
 
 	TVec<TInt> finalOrder;
 	finalOrder.Reserve(startSize);
@@ -372,6 +376,8 @@ TVec<TInt> determineBCVcomputeOrderOptimized(TPt<TNodeEdgeNet<TStr, TStr> > base
 			zeroOutDegrees[node.GetId()] = true;
 		}
 	}
+	const int infoFrequency = startSize > 1000000 ? 100000 : 10000;
+
 	unsigned long int n;
 	while ((n = zeroOutDegrees.find_any()) != zeroOutDegrees.npos) {
 		//const int n = zeroOutDegrees.find_first();
@@ -390,10 +396,12 @@ TVec<TInt> determineBCVcomputeOrderOptimized(TPt<TNodeEdgeNet<TStr, TStr> > base
 		prunable->DelNode(n);
 		todo[n] = false;
 		finalOrder.Add(n);
+		if (finalOrder.Len() % infoFrequency == 0) {
+			cout << currentTime() << finalOrder.Len() << "/" << startSize << " done" << endl;
+		}
 	}
 
 	cout << currentTime() << "After first fast phase, " << finalOrder.Len() << "/" << startSize << " nodes are done, starting iterative phase" << endl;
-	int infoFrequency = startSize > 1000000 ? 100000 : 10000;
 
 	//now the more general case including loops is handled
 	TMaxPriorityQueue<TInt> highestInDegree;
