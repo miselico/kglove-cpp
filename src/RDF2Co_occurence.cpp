@@ -725,18 +725,19 @@ TVec<TInt> determineBCVcomputeOrderOptimized(TPt<TNodeEdgeNet<TStr, TStr> > base
 
 class Node {
 public:
+	//TODO this also works with std::set instead of unordered. Check what is faster for large graphs.
+	int ID;
 	boost::unordered_set<Node*> inedgeSources;
 	boost::unordered_set<Node*> outedgeDestination;
-	int ID;
 
 	Node(int ID) :
-			ID(ID) {			//Intentionally empty
+			ID(ID), inedgeSources(5), outedgeDestination(5) {			//Intentionally empty
 	}
 
-	int getInDeg() {
+	int getInDeg() const {
 		return inedgeSources.size();
 	}
-	int getOutDeg() {
+	int getOutDeg() const {
 		return outedgeDestination.size();
 	}
 
@@ -764,8 +765,13 @@ public:
 				//eclipse does not find these defnitions, gcc does...
 				boost::unordered_set<Node*>::value_type sourceNode = &(*this)[src];
 				boost::unordered_set<Node*>::value_type destinationNode = &(*this)[dst];
-				sourceNode->outedgeDestination.insert(destinationNode);
-				destinationNode->inedgeSources.insert(sourceNode);
+				std::pair<boost::unordered::iterator_detail::c_iterator<boost::unordered::detail::ptr_node<Node*> >, bool> a;
+
+				a = sourceNode->outedgeDestination.insert(destinationNode);
+
+				if (a.second) {
+					destinationNode->inedgeSources.insert(sourceNode);
+				}
 			}
 		}
 		cout << currentTime() << "graph copied" << endl;
@@ -798,7 +804,7 @@ TVec<TInt> determineBCVcomputeOrderOptimizedOwnGraph(TPt<TNodeEdgeNet<TStr, TStr
 	todo.resize(startSize, true);
 
 	//we do a first quicker check to eliminate all nodes which are not part of a cycle
-	for (std::vector<Node>::iterator node = prunable_graph.begin(); node < prunable_graph.end(); node++) {
+	for (std::vector<Node>::const_iterator node = prunable_graph.cbegin(); node != prunable_graph.cend(); node++) {
 		if (node->getOutDeg() == 0) {
 			zeroOutDegrees[node->ID] = true;
 		}
@@ -812,7 +818,7 @@ TVec<TInt> determineBCVcomputeOrderOptimizedOwnGraph(TPt<TNodeEdgeNet<TStr, TStr
 		//n will be removed from the graph. Add all nodes which will get zero out degree to the set
 		Node& toBeRemoved = prunable_graph[n];
 
-		for (boost::unordered_set<Node*>::iterator dependant = toBeRemoved.inedgeSources.begin(); dependant != toBeRemoved.inedgeSources.end(); dependant++) {
+		for (boost::unordered_set<Node*>::const_iterator dependant = toBeRemoved.inedgeSources.cbegin(); dependant != toBeRemoved.inedgeSources.cend(); dependant++) {
 			//it is enough to check the outdegree being 1. The graph guarantees that there is only one directed edge between an ordered pair of nodes.
 			if ((*dependant)->getOutDeg() == 1) {
 				zeroOutDegrees.setTrueAndRecord((*dependant)->ID);
@@ -840,7 +846,7 @@ TVec<TInt> determineBCVcomputeOrderOptimizedOwnGraph(TPt<TNodeEdgeNet<TStr, TStr
 	TMaxPriorityQueue<TInt> highestInDegree;
 	//set-up the  highestInDegree PQ,
 
-	for (std::vector<Node>::iterator node = prunable_graph.begin(); node < prunable_graph.end(); node++) {
+	for (std::vector<Node>::const_iterator node = prunable_graph.cbegin(); node < prunable_graph.cend(); node++) {
 		//if the outdegree is 0, there is no need to get the node to the highestInDegree as it would be removed immediately again, but there are no zeroOutDegreeNodes at this point
 		//We add one to indicate that even a node with 0 in degree is still a valid node.
 		highestInDegree.Insert(node->ID, node->getInDeg() + 1);
@@ -854,7 +860,7 @@ TVec<TInt> determineBCVcomputeOrderOptimizedOwnGraph(TPt<TNodeEdgeNet<TStr, TStr
 			//n will be removed from the graph. Add all nodes which will get zero out degree to the set
 			Node& toBeRemoved = prunable_graph[n];
 
-			for (boost::unordered_set<Node*>::iterator dependant = toBeRemoved.inedgeSources.begin(); dependant != toBeRemoved.inedgeSources.end(); dependant++) {
+			for (boost::unordered_set<Node*>::const_iterator dependant = toBeRemoved.inedgeSources.cbegin(); dependant != toBeRemoved.inedgeSources.cend(); dependant++) {
 				//it is enough to check the outdegree being 1. The graph guarantees that there is only one directed edge between an ordered pair of nodes.
 				if ((*dependant)->getOutDeg() == 1) {
 					zeroOutDegrees.setTrueAndRecord((*dependant)->ID);
@@ -887,7 +893,7 @@ TVec<TInt> determineBCVcomputeOrderOptimizedOwnGraph(TPt<TNodeEdgeNet<TStr, TStr
 		//k will be removed add all nodes which will get a zero out degree to set
 		Node& kNode = prunable_graph[k];
 
-		for (boost::unordered_set<Node*>::iterator dependant = kNode.inedgeSources.begin(); dependant != kNode.inedgeSources.end(); dependant++) {
+		for (boost::unordered_set<Node*>::const_iterator dependant = kNode.inedgeSources.cbegin(); dependant != kNode.inedgeSources.cend(); dependant++) {
 			//it is enough to check the outdegree being 1. The graph guarantees that there is only one directed edge between an ordered pair of nodes.
 			if ((*dependant)->getOutDeg() == 1) {
 				zeroOutDegrees.setTrueAndRecord((*dependant)->ID);
@@ -897,7 +903,7 @@ TVec<TInt> determineBCVcomputeOrderOptimizedOwnGraph(TPt<TNodeEdgeNet<TStr, TStr
 		}
 
 		//update the priorities of all nodes k is pointing to
-		for (boost::unordered_set<Node*>::iterator dest = kNode.outedgeDestination.begin(); dest != kNode.outedgeDestination.end(); dest++) {
+		for (boost::unordered_set<Node*>::const_iterator dest = kNode.outedgeDestination.cbegin(); dest != kNode.outedgeDestination.cend(); dest++) {
 			//We add one to indicate that even a node with 0 in degree is still a valid node.
 			//Here we use the fact that there are no self edges in the graph. Otherwise we have to make sure that dest.id != k
 			highestInDegree.SetPriority((*dest)->ID, (*dest)->getInDeg() - 1 + 1);
