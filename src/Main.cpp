@@ -17,7 +17,12 @@ using namespace std;
 
 
 int main(int argc, char **argv) {
+	try{
 	RDF2CO::performExperiments();
+	} catch (char const* str){
+		cout << str << endl;
+		throw str;
+	}
 	return 0;
 }
 

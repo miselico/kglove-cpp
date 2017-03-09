@@ -7,6 +7,7 @@
 
 #include <iostream>
 #include <fstream>
+#include <string>
 #include "Snap.h"
 #include "WeightedPredicate.h"
 #include "nTripleParser.h"
@@ -17,12 +18,12 @@
 #include "boost/graph/graph_traits.hpp"
 #include <boost/graph/graph_traits.hpp>
 #include <boost/graph/adjacency_list.hpp>
+#include "boost/lexical_cast.hpp"
 //#include <boost/graph/topological_sort.hpp>
 #include <utility>                   // for std::pair
 #include "PrintTime.h"
 
-
-namespace BCAOrder{
+namespace BCAOrder {
 
 class my_bitset: public boost::dynamic_bitset<> {
 
@@ -64,7 +65,6 @@ bool allNumbersIn(TVec<TInt> all) {
 	}
 	return true;
 }
-
 
 class Node {
 public:
@@ -285,7 +285,7 @@ void ComputeBCAOrder(TStr inputFilename, TStr outputFileName) {
 
 	ofstream myfile(outputFileName.CStr());
 	for (TVec<TInt>::TIter iter = order.BegI(); iter < order.EndI(); iter++) {
-		myfile << int(*iter) <<   '\n';
+		myfile << int(*iter) << '\n';
 	}
 	myfile.flush();
 	if (!myfile.good()) {
@@ -295,337 +295,420 @@ void ComputeBCAOrder(TStr inputFilename, TStr outputFileName) {
 	cout << currentTime() << "done writing" << endl;
 }
 
-}
-
-
-namespace {
-/**
- * typedefs compatible with the input expected by glove
- */
-typedef double real;
-
-typedef struct cooccur_rec {
-	int word1;
-	int word2;
-	real val;
-} CREC;
-
-/**
- * Get a table which assigns a unique index to each (predicate, object) pair.
- *
- * The index will be strictly greater as zero since that is what glove uses to skip an entry.
- */
-THash<TPair<TStr, TStr>, TInt> createPairedWordIndexTable(TPt<TNodeEdgeNet<TStr, TStr> > graph) {
-	THash<TPair<TStr, TStr>, TInt> table;
-	int counter = 1;
-	for (TNodeEdgeNet<TStr, TStr>::TNodeI NI = graph->BegNI(); NI < graph->EndNI(); NI++) {
-
-		int node_i_outdeg = NI.GetOutDeg();
-		for (int outEdge = 0; outEdge < node_i_outdeg; ++outEdge) {
-			TStr predicate = NI.GetOutEDat(outEdge);
-			TStr object = NI.GetOutNDat(outEdge);
-			TPair<TStr, TStr> pair = TPair<TStr, TStr>(predicate, object);
-			if (!table.IsKey(pair)) {
-				table.AddDat(pair, counter);
-				counter++;
-			}
-		}
+TVec<TInt> readBCAOrder(TStr precomputedBCAOrderFile, int expectedCount) {
+	TVec<TInt> result;
+	result.Reserve(expectedCount);
+	ifstream myfile(precomputedBCAOrderFile.CStr());
+	int next;
+	while (myfile >> next) {
+		result.Add(next);
 	}
-	return table;
-}
+	myfile.close();
 
-/*
- * The wordIndexTable is indexed from 0 as it should be, but we need IDs which start from 1. This function abstracts this away
- */
-
-int graphIDToGloveID(int graphID) {
-	return graphID + 1;
-}
-
-/**
- *
- * Compute the BCA score for each pair in the graph under the given weiging strategy.
- *
- * Outputs the score as a sparse matrix which can be fed to glove.
- *
- */
-void computeFrequencies(TStr filename, GraphWeigher& weighingStrategy, double bca_alpha, double bca_eps, FILE * glove_input_file_out, FILE * glove_vocab_file_out) {
-	TPair<TPt<TNodeEdgeNet<TStr, TStr> >, THash<TStr, int> > graphAndNodeIndex = n3parser::buildRDFGraphIgnoreLiterals(filename);
-	TPt<TNodeEdgeNet<TStr, TStr> > graph = graphAndNodeIndex.Val1;
-
-	TPt<TNodeEdgeNet<TStr, WeightedPredicate> > weightedGraph = weighingStrategy.weigh(graph);
-
-	for (int i = 0; i < weightedGraph->GetNodes(); ++i) {
-
-		int focusWordGraphID = i;
-		BCV bcv = computeBCA(weightedGraph, focusWordGraphID, bca_alpha, bca_eps);
-
-		int focusWordGloveID = graphIDToGloveID(i);
-
-		for (THash<TInt, TFlt>::TIter iter = bcv.BegI(); iter < bcv.EndI(); iter++) {
-			int contextWordGraphID = iter.GetKey();
-			int contextWordGloveID = graphIDToGloveID(contextWordGraphID);
-			double freq = iter.GetDat();
-			CREC crec = CREC { word1:focusWordGloveID, word2:contextWordGloveID, val: freq };
-			fwrite(&crec, sizeof(CREC), 1, glove_input_file_out);
-		}
-
-		TStr nodeLabel = weightedGraph->GetNDat(focusWordGraphID);
-
-		fprintf(glove_vocab_file_out, "%s fakeFrequency\n", nodeLabel.CStr());
-		if (i % 1000 == 0) {
-			cout << i / float(weightedGraph->GetNodes()) << endl;
-		}
+	if (result.Len() != expectedCount) {
+		throw "Size of the precomputed BCA order file is not as expected";
 	}
+
+	return result;
 }
 
-/**
- * For each unique predicate in the graph add a unique ID it to the returned hash.
- *
- * The returned vector contains the strings in the same order as their IDs
- *
- * The used IDs range from graph.Nodes() till graph.Nodes+(numberOfUniquePredicates=returnValue.Len()) exclusive
- */
-TPair<TVec<TStr>, THash<TStr, int>> computePredicateIDs(TPt<TNodeEdgeNet<TStr, TStr> > graph) {
-	THash<TStr, int> preds;
-	TVec<TStr> labels;
-	unsigned int currentID = graph->GetNodes();
-	for (int i = 0; i < graph->GetEdges(); ++i) {
-		TStr label = graph->GetEDat(i);
-		if (!preds.IsKey(label)) {
-			preds.AddDat(label, currentID);
-			labels.Add(label);
-			currentID++;
-		}
-	}
-	return TPair<TVec<TStr>, THash<TStr, int>>(labels, preds);
 }
 
+class Co_occurenceComputer {
+private:
+	/**
+	 * typedefs compatible with the input expected by glove
+	 */
 
-/**
- *
- * Compute the BCA score for each pair in the graph under the given weighing strategy.
- * Additionally, adds a score for each edge as well.
- *
- * Outputs the score as a sparse matrix which can be fed to glove.
- *
- *
- *
- */
-void computeFrequenciesIncludingEdges(TStr filename, GraphWeigher& weighingStrategy, double bca_alpha, double bca_eps, FILE * glove_input_file_out, FILE * glove_vocab_file_out, bool normalize,
-bool onlyEntities) {
+	typedef double real;
 
-	TPt<TNodeEdgeNet<TStr, WeightedPredicate> > weightedGraph;
-	TPair<TVec<TStr>, THash<TStr, int>> predLabelsAndIDs;
-	TVec<TInt> order;
+	typedef struct cooccur_rec {
+		int word1;
+		int word2;
+		real val;
+	} CREC;
 
-	{ //scoping to save on total memory
-		TPair<TPt<TNodeEdgeNet<TStr, TStr> >, THash<TStr, int> > graphAndNodeIndex = n3parser::buildRDFGraphIgnoreLiterals(filename);
-		TPt<TNodeEdgeNet<TStr, TStr> > graph = graphAndNodeIndex.Val1;
-		order = BCAOrder::determineBCAcomputeOrder(graph);
-		predLabelsAndIDs = computePredicateIDs(graph);
-		weightedGraph = weighingStrategy.weigh(graph);
-	}
-	THash<TStr, int> predGraphIDs = predLabelsAndIDs.Val2;
+	/**
+	 * Get a table which assigns a unique index to each (predicate, object) pair.
+	 *
+	 * The index will be strictly greater as zero since that is what glove uses to skip an entry.
+	 */
+	static THash<TPair<TStr, TStr>, TInt> createPairedWordIndexTable(TPt<TNodeEdgeNet<TStr, TStr> > graph) {
+		THash<TPair<TStr, TStr>, TInt> table;
+		int counter = 1;
+		for (TNodeEdgeNet<TStr, TStr>::TNodeI NI = graph->BegNI(); NI < graph->EndNI(); NI++) {
 
-	THash<TInt, BCV> bcvCache;
-
-	int counter = 0;
-	for (TVec<TInt>::TIter iter = order.BegI(); iter < order.EndI(); iter++) {
-		int i = iter->Val;
-		TNodeEdgeNet<TStr, WeightedPredicate>::TNodeI candidateNode = weightedGraph->GetNI(i);
-//		//only take specific one:
-//		if (candidateNode.GetDat() != "<http://dbpedia.org/ontology/Province>"){
-//			continue;
-//		}
-
-		if (onlyEntities) {
-			bool accept = false;
-			for (int outEdgeNr = 0; outEdgeNr < candidateNode.GetOutDeg(); ++outEdgeNr) {
-				TStr predicate = candidateNode.GetOutEDat(outEdgeNr).P();
-				if (predicate == RDF_TYPE) {
-					TStr object = candidateNode.GetOutNDat(outEdgeNr);
-					if (object == OWL_THING) {
-						accept = true;
-					}
+			int node_i_outdeg = NI.GetOutDeg();
+			for (int outEdge = 0; outEdge < node_i_outdeg; ++outEdge) {
+				TStr predicate = NI.GetOutEDat(outEdge);
+				TStr object = NI.GetOutNDat(outEdge);
+				TPair<TStr, TStr> pair = TPair<TStr, TStr>(predicate, object);
+				if (!table.IsKey(pair)) {
+					table.AddDat(pair, counter);
+					counter++;
 				}
 			}
-			if (!accept) {
-				continue;
+		}
+		return table;
+	}
+
+	/*
+	 * The wordIndexTable is indexed from 0 as it should be, but we need IDs which start from 1. This function abstracts this away
+	 */
+
+	static int graphIDToGloveID(int graphID) {
+		return graphID + 1;
+	}
+
+	/**
+	 * For each unique predicate in the graph add a unique ID it to the returned hash.
+	 *
+	 * The returned vector contains the strings in the same order as their IDs
+	 *
+	 * The used IDs range from graph.Nodes() till graph.Nodes+(numberOfUniquePredicates=returnValue.Len()) exclusive
+	 */
+	static TPair<TVec<TStr>, THash<TStr, int>> computePredicateIDs(TPt<TNodeEdgeNet<TStr, TStr> > graph) {
+		THash<TStr, int> preds;
+		TVec<TStr> labels;
+		unsigned int currentID = graph->GetNodes();
+		for (int i = 0; i < graph->GetEdges(); ++i) {
+			TStr label = graph->GetEDat(i);
+			if (!preds.IsKey(label)) {
+				preds.AddDat(label, currentID);
+				labels.Add(label);
+				currentID++;
 			}
 		}
-		const int focusWordGraphID = i;
-		BCV combinedbcv = computeBCAIncludingEdgesCached(weightedGraph, focusWordGraphID, bca_alpha, bca_eps, predGraphIDs, bcvCache);
-		const int focusWordGloveID = graphIDToGloveID(i);
-		if (normalize) {
-			combinedbcv.removeEntry(i);
-			combinedbcv.normalizeInPlace();
-		}
-		for (THash<TInt, TFlt>::TIter iter = combinedbcv.BegI(); iter < combinedbcv.EndI(); iter++) {
-			int contextWordGraphID = iter.GetKey();
-			int contextWordGloveID = graphIDToGloveID(contextWordGraphID);
-			double freq = iter.GetDat();
-			CREC crec = CREC { word1:focusWordGloveID, word2:contextWordGloveID, val: freq };
-			//CREC crec = CREC { word1:contextWordGloveID, word2:focusWordGloveID, val: freq };
-			fwrite(&crec, sizeof(CREC), 1, glove_input_file_out);
+		return TPair<TVec<TStr>, THash<TStr, int>>(labels, preds);
+	}
+
+	//currently preceded by _ to prevent name clashes in not yet adapted methods
+	TVec<TInt> _order;
+	TPt<TNodeEdgeNet<TStr, WeightedPredicate> > _weightedGraph;
+	//TPair<TVec<TStr>, THash<TStr, int>> predLabelsAndIDs;
+	THash<TStr, int> _predGraphIDs;
+	TVec<TStr> _predicateLabels;
+
+public:
+
+	Co_occurenceComputer(TStr inputGraphFileName, GraphWeigher& weighingStrategy) {
+		TPair<TPt<TNodeEdgeNet<TStr, TStr> >, THash<TStr, int> > graphAndNodeIndex = n3parser::buildRDFGraphIgnoreLiterals(inputGraphFileName);
+		TPt<TNodeEdgeNet<TStr, TStr> > graph = graphAndNodeIndex.Val1;
+		_order = BCAOrder::determineBCAcomputeOrder(graph);
+		TPair<TVec<TStr, int>, THash<TStr, int> > predLabelsAndIDs = computePredicateIDs(graph);
+		_weightedGraph = weighingStrategy.weigh(graph);
+		_predGraphIDs = predLabelsAndIDs.Val2;
+		_predicateLabels = predLabelsAndIDs.Val1;
+	}
+
+	Co_occurenceComputer(TStr inputGraphFileName, TStr precomputedBCAOrderFile, GraphWeigher& weighingStrategy) {
+		TPair<TPt<TNodeEdgeNet<TStr, TStr> >, THash<TStr, int> > graphAndNodeIndex = n3parser::buildRDFGraphIgnoreLiterals(inputGraphFileName);
+		TPt<TNodeEdgeNet<TStr, TStr> > graph = graphAndNodeIndex.Val1;
+		_order = BCAOrder::readBCAOrder(precomputedBCAOrderFile, graph->GetNodes());
+
+		TPair<TVec<TStr, int>, THash<TStr, int> > predLabelsAndIDs = computePredicateIDs(graph);
+		_weightedGraph = weighingStrategy.weigh(graph);
+		_predGraphIDs = predLabelsAndIDs.Val2;
+		_predicateLabels = predLabelsAndIDs.Val1;
+	}
+
+	/**
+	 *
+	 * Compute the BCA score for each pair in the graph under the given weighing strategy.
+	 * Additionally, adds a score for each edge as well.
+	 *
+	 * Outputs the score as a sparse matrix which can be fed to glove.
+	 *
+	 *
+	 *
+	 */
+	void computeFrequenciesIncludingEdges(double bca_alpha, double bca_eps, FILE * glove_input_file_out, FILE * glove_vocab_file_out, bool normalize,
+	bool onlyEntities) {
+
+		const int infoFrequency = _order.Len() > 1000000 ? 100000 : 10000;
+		THash<TInt, BCV> bcvCache;
+
+		int counter = 0;
+		for (TVec<TInt>::TIter iter = _order.BegI(); iter < _order.EndI(); iter++) {
+			int i = iter->Val;
+			TNodeEdgeNet<TStr, WeightedPredicate>::TNodeI candidateNode = _weightedGraph->GetNI(i);
+			//		//only take specific one:
+			//		if (candidateNode.GetDat() != "<http://dbpedia.org/ontology/Province>"){
+			//			continue;
+			//		}
+
+			if (onlyEntities) {
+				bool accept = false;
+				for (int outEdgeNr = 0; outEdgeNr < candidateNode.GetOutDeg(); ++outEdgeNr) {
+					TStr predicate = candidateNode.GetOutEDat(outEdgeNr).P();
+					if (predicate == RDF_TYPE) {
+						TStr object = candidateNode.GetOutNDat(outEdgeNr);
+						if (object == OWL_THING) {
+							accept = true;
+						}
+					}
+				}
+				if (!accept) {
+					continue;
+				}
+			}
+			const int focusWordGraphID = i;
+			BCV combinedbcv = computeBCAIncludingEdgesCached(_weightedGraph, focusWordGraphID, bca_alpha, bca_eps, _predGraphIDs, bcvCache);
+			const int focusWordGloveID = graphIDToGloveID(i);
+			if (normalize) {
+				combinedbcv.removeEntry(i);
+				combinedbcv.normalizeInPlace();
+			}
+			for (THash<TInt, TFlt>::TIter iter = combinedbcv.BegI(); iter < combinedbcv.EndI(); iter++) {
+				int contextWordGraphID = iter.GetKey();
+				int contextWordGloveID = graphIDToGloveID(contextWordGraphID);
+				double freq = iter.GetDat();
+				CREC crec = CREC { word1:focusWordGloveID, word2:contextWordGloveID, val: freq };
+				//CREC crec = CREC { word1:contextWordGloveID, word2:focusWordGloveID, val: freq };
+				fwrite(&crec, sizeof(CREC), 1, glove_input_file_out);
+			}
+
+			TStr nodeLabel = _weightedGraph->GetNDat(focusWordGraphID);
+
+			fprintf(glove_vocab_file_out, "%s nofr\n", nodeLabel.CStr());
+			counter++;
+			if ((counter % infoFrequency) == 0) {
+				cout << "Processed " << counter << "/" << _order.Len() << " BCV computations" << endl;
+			}
 		}
 
-		TStr nodeLabel = weightedGraph->GetNDat(focusWordGraphID);
+		//still need to write all predicates to the vocab file
 
-		fprintf(glove_vocab_file_out, "%s nofr\n", nodeLabel.CStr());
-		counter++;
-		if ((counter % 10000) == 0) {
-			cout << "Processed " << counter << "/" << order.Len() << " BCV computations" << endl;
+		for (TVec<TStr>::TIter it = _predicateLabels.BegI(); it < _predicateLabels.EndI(); it++) {
+			fprintf(glove_vocab_file_out, "%s nofr\n", it->CStr());
 		}
 	}
 
-//still need to write all predicates to the vocab file
+	/////////////////////////not yet adapted (reusing parts + optiimzations) static methods////////////////////
 
-	TVec<TStr> predicateLabels = predLabelsAndIDs.Val1;
-	for (TVec<TStr>::TIter it = predicateLabels.BegI(); it < predicateLabels.EndI(); it++) {
-		fprintf(glove_vocab_file_out, "%s nofr\n", it->CStr());
-	}
-}
-
-/**
- *
- * Compute the BCA score for each pair in the graph under the given weighing strategy.
- * Additionally, adds a score for each edge as well.
- *
- * Furthermore, it also performs a reverse walk and adds the result of that to the BCVs
- * The reverse walk can be performed according to a different weighing strategy
- *
- * Outputs the score as a sparse matrix which can be fed to glove.
- *
- */
-void computeFrequenciesIncludingEdgesTheUltimate(TStr filename, GraphWeigher& weighingStrategy, GraphWeigher & reverseWeighingStrategy, double bca_alpha, double bca_eps, FILE * glove_input_file_out,
-		FILE * glove_vocab_file_out, bool normalize) {
-
-	TPt<TNodeEdgeNet<TStr, WeightedPredicate> > weightedGraph;
-	TPt<TNodeEdgeNet<TStr, WeightedPredicate> > weightedReverseGraph;
-	TPair<TVec<TStr>, THash<TStr, int>> predLabelsAndIDs;
-
-	{ //scoping to save on total memory
+	/**
+	 *
+	 * Compute the BCA score for each pair in the graph under the given weiging strategy.
+	 *
+	 * Outputs the score as a sparse matrix which can be fed to glove.
+	 *
+	 * TODO This is not yet optimized for order and reuse of BCA computations
+	 *
+	 */
+	static void computeFrequencies(TStr filename, GraphWeigher& weighingStrategy, double bca_alpha, double bca_eps, FILE * glove_input_file_out, FILE * glove_vocab_file_out) {
+		cerr << "computeFrequencies is not yet optimized to reuse BCA computations and other graph data";
 		TPair<TPt<TNodeEdgeNet<TStr, TStr> >, THash<TStr, int> > graphAndNodeIndex = n3parser::buildRDFGraphIgnoreLiterals(filename);
 		TPt<TNodeEdgeNet<TStr, TStr> > graph = graphAndNodeIndex.Val1;
 
-		predLabelsAndIDs = computePredicateIDs(graph);
+		TPt<TNodeEdgeNet<TStr, WeightedPredicate> > weightedGraph = weighingStrategy.weigh(graph);
+
+		for (int i = 0; i < weightedGraph->GetNodes(); ++i) {
+
+			int focusWordGraphID = i;
+			BCV bcv = computeBCA(weightedGraph, focusWordGraphID, bca_alpha, bca_eps);
+
+			int focusWordGloveID = graphIDToGloveID(i);
+
+			for (THash<TInt, TFlt>::TIter iter = bcv.BegI(); iter < bcv.EndI(); iter++) {
+				int contextWordGraphID = iter.GetKey();
+				int contextWordGloveID = graphIDToGloveID(contextWordGraphID);
+				double freq = iter.GetDat();
+				CREC crec = CREC { word1:focusWordGloveID, word2:contextWordGloveID, val: freq };
+				fwrite(&crec, sizeof(CREC), 1, glove_input_file_out);
+			}
+
+			TStr nodeLabel = weightedGraph->GetNDat(focusWordGraphID);
+
+			fprintf(glove_vocab_file_out, "%s fakeFrequency\n", nodeLabel.CStr());
+			if (i % 1000 == 0) {
+				cout << i / float(weightedGraph->GetNodes()) << endl;
+			}
+		}
+	}
+
+	/**
+	 *
+	 * Compute the BCA score for each pair in the graph under the given weighing strategy.
+	 * Additionally, adds a score for each edge as well.
+	 *
+	 * Furthermore, it also performs a reverse walk and adds the result of that to the BCVs
+	 * The reverse walk can be performed according to a different weighing strategy
+	 *
+	 * Outputs the score as a sparse matrix which can be fed to glove.
+	 *
+	 */
+	static void computeFrequenciesIncludingEdgesTheUltimate(TStr filename, GraphWeigher& weighingStrategy, GraphWeigher & reverseWeighingStrategy, double bca_alpha, double bca_eps,
+			FILE * glove_input_file_out, FILE * glove_vocab_file_out, bool normalize) {
+		cerr << "computeFrequenciesIncludingEdgesTheUltimate is not yet optimized to reuse BCA computations and other graph data";
+
+		TPt<TNodeEdgeNet<TStr, WeightedPredicate> > weightedGraph;
+		TPt<TNodeEdgeNet<TStr, WeightedPredicate> > weightedReverseGraph;
+		TPair<TVec<TStr>, THash<TStr, int>> predLabelsAndIDs;
 
 		{ //scoping to save on total memory
-			TPt<TNodeEdgeNet<TStr, TStr> > reversed = reverseGraph(graph);
-			weightedReverseGraph = reverseWeighingStrategy.weigh(reversed);
-		}
-		weightedGraph = weighingStrategy.weigh(graph);
-	}
+			TPair<TPt<TNodeEdgeNet<TStr, TStr> >, THash<TStr, int> > graphAndNodeIndex = n3parser::buildRDFGraphIgnoreLiterals(filename);
+			TPt<TNodeEdgeNet<TStr, TStr> > graph = graphAndNodeIndex.Val1;
 
-	THash<TStr, int> predGraphIDs = predLabelsAndIDs.Val2;
+			predLabelsAndIDs = computePredicateIDs(graph);
 
-//int predicateIDGloveOffset = weightedGraph->GetNodes();
-
-	for (int i = 0; i < weightedGraph->GetNodes(); ++i) {
-
-		const int focusWordGraphID = i;
-		BCV combinedbcv = computeBCAIncludingEdges(weightedGraph, focusWordGraphID, bca_alpha, bca_eps, predGraphIDs);
-		BCV combinedreversedBCVs = computeBCAIncludingEdges(weightedReverseGraph, focusWordGraphID, bca_alpha, bca_eps, predGraphIDs);
-
-		const int focusWordGloveID = graphIDToGloveID(i);
-		combinedbcv.add(combinedreversedBCVs);
-
-		if (normalize) {
-			combinedbcv.removeEntry(i);
-			combinedbcv.normalizeInPlace();
-		}
-		for (THash<TInt, TFlt>::TIter iter = combinedbcv.BegI(); iter < combinedbcv.EndI(); iter++) {
-			int contextWordGraphID = iter.GetKey();
-			int contextWordGloveID = graphIDToGloveID(contextWordGraphID);
-			double freq = iter.GetDat();
-			CREC crec = CREC { word1:focusWordGloveID, word2:contextWordGloveID, val: freq };
-			fwrite(&crec, sizeof(CREC), 1, glove_input_file_out);
+			{ //scoping to save on total memory
+				TPt<TNodeEdgeNet<TStr, TStr> > reversed = reverseGraph(graph);
+				weightedReverseGraph = reverseWeighingStrategy.weigh(reversed);
+			}
+			weightedGraph = weighingStrategy.weigh(graph);
 		}
 
-		TStr nodeLabel = weightedGraph->GetNDat(focusWordGraphID);
+		THash<TStr, int> predGraphIDs = predLabelsAndIDs.Val2;
 
-		fprintf(glove_vocab_file_out, "%s fakeFrequency\n", nodeLabel.CStr());
-		if (i % 1000 == 0) {
-			cout << i << "/" << weightedGraph->GetNodes() << " = " << i / float(weightedGraph->GetNodes()) << endl;
+		//int predicateIDGloveOffset = weightedGraph->GetNodes();
+
+		for (int i = 0; i < weightedGraph->GetNodes(); ++i) {
+
+			const int focusWordGraphID = i;
+			BCV combinedbcv = computeBCAIncludingEdges(weightedGraph, focusWordGraphID, bca_alpha, bca_eps, predGraphIDs);
+			BCV combinedreversedBCVs = computeBCAIncludingEdges(weightedReverseGraph, focusWordGraphID, bca_alpha, bca_eps, predGraphIDs);
+
+			const int focusWordGloveID = graphIDToGloveID(i);
+			combinedbcv.add(combinedreversedBCVs);
+
+			if (normalize) {
+				combinedbcv.removeEntry(i);
+				combinedbcv.normalizeInPlace();
+			}
+			for (THash<TInt, TFlt>::TIter iter = combinedbcv.BegI(); iter < combinedbcv.EndI(); iter++) {
+				int contextWordGraphID = iter.GetKey();
+				int contextWordGloveID = graphIDToGloveID(contextWordGraphID);
+				double freq = iter.GetDat();
+				CREC crec = CREC { word1:focusWordGloveID, word2:contextWordGloveID, val: freq };
+				fwrite(&crec, sizeof(CREC), 1, glove_input_file_out);
+			}
+
+			TStr nodeLabel = weightedGraph->GetNDat(focusWordGraphID);
+
+			fprintf(glove_vocab_file_out, "%s fakeFrequency\n", nodeLabel.CStr());
+			if (i % 1000 == 0) {
+				cout << i << "/" << weightedGraph->GetNodes() << " = " << i / float(weightedGraph->GetNodes()) << endl;
+			}
 		}
-	}
-//still need to write all predicates to the vocab file
+		//still need to write all predicates to the vocab file
 
-	TVec<TStr> predicateLabels = predLabelsAndIDs.Val1;
-	for (TVec<TStr>::TIter it = predicateLabels.BegI(); it < predicateLabels.EndI(); it++) {
-		fprintf(glove_vocab_file_out, "%s fakeFrequency\n", it->CStr());
-	}
-}
-
-/**
- * Implementation incomplete!!!
- */
-void computeFrequenciesPushBCA(TStr filename, GraphWeigher& weighingStrategy, FILE *fout) {
-	TPair<TPt<TNodeEdgeNet<TStr, TStr> >, THash<TStr, int> > graphAndNodeIndex = n3parser::buildRDFGraph(filename);
-	TPt<TNodeEdgeNet<TStr, TStr> > graph = graphAndNodeIndex.Val1;
-
-	THash<TStr, int> wordIndexTable = graphAndNodeIndex.Val2;
-
-	THash<TPair<TStr, TStr>, TInt> pairwordIndexTable = createPairedWordIndexTable(graph);
-	TPt<TNodeEdgeNet<TStr, WeightedPredicate> > weightedGraph = weighingStrategy.weigh(graph);
-
-	graph.Clr();
-
-	cout << "done weighing" << endl;
-
-	cerr << "TODO : check - does the indexing for glove have to start from 1 or 0 ??";
-	for (int i = 0; i < weightedGraph->GetNodes(); ++i) {
-		if (weightedGraph->GetNDat(i).SearchCh('<') != 0) {
-			continue;
-		}
-		PBCV bcv = computePBCA(weightedGraph, i, 0.10, 0.000001);
-		int subjectIndex = wordIndexTable.GetDat(weightedGraph->GetNDat(i));
-		for (THash<TPair<TInt, TInt>, TFlt>::TIter iter = bcv.BegI(); iter < bcv.EndI(); iter++) {
-			WeightedPredicate wpred = weightedGraph->GetEDat(iter.GetKey().Val1);
-			TStr pred = wpred.P();
-			TStr obj = weightedGraph->GetNDat(iter.GetKey().Val2);
-			int offset = wordIndexTable.Len();
-			int pairIndex = pairwordIndexTable.GetDat(TPair<TStr, TStr>(pred, obj)) + offset;
-			double freq = iter.GetDat();
-
-			CREC crec = CREC { word1:subjectIndex, word2:pairIndex, val: freq };
-			fwrite(&crec, sizeof(CREC), 1, fout);
-
-			cout << subjectIndex << " has " << pairIndex << " freq " << freq << endl;
+		TVec<TStr> predicateLabels = predLabelsAndIDs.Val1;
+		for (TVec<TStr>::TIter it = predicateLabels.BegI(); it < predicateLabels.EndI(); it++) {
+			fprintf(glove_vocab_file_out, "%s fakeFrequency\n", it->CStr());
 		}
 	}
 
-//	TTmStopWatch w (true);
-//	int needed = 10000;
-//	int * selected = (int*) malloc(needed * sizeof(int));
-//	int skipped = 0;
-//	for (int i = 0; i < needed + skipped && i < weightedGraph->GetNodes(); ++i) {
-//		if (weightedGraph->GetNDat(i).SearchCh('<') != 0) {
-//			++skipped;
-//			continue;
-//		} else {
-//			selected[i - skipped] = i;
-//		}
-//	}
-//	for (int index = 0; index < needed && index < weightedGraph->GetNodes(); index++) {
-//		int id = selected[index];
-//		PBCV bcv = computePBCA(weightedGraph, id, 0.10, 0.000000000001);
-//		//cout << bcv.toString(weightedGraph) << endl;
-//		if (index % 1000 == 0) {
-//			cout << "another 1000" << weightedGraph->GetNDat(id).CStr() << "->" << bcv.toString(weightedGraph) << endl;
-//		}
-//	}
-//
-//	w.Stop();
-//	cout << w.GetMSecInt() << "ms" << endl;
-	return;
-}
+	/**
+	 * Implementation incomplete!!!
+	 */
+	static void computeFrequenciesPushBCA(TStr filename, GraphWeigher& weighingStrategy, FILE *fout) {
+		cerr << "computeFrequenciesPushBCA is not yet completely implemented";
+		throw "not implemented";
 
-} //end anonymous namespace.
+		TPair<TPt<TNodeEdgeNet<TStr, TStr> >, THash<TStr, int> > graphAndNodeIndex = n3parser::buildRDFGraph(filename);
+		TPt<TNodeEdgeNet<TStr, TStr> > graph = graphAndNodeIndex.Val1;
+
+		THash<TStr, int> wordIndexTable = graphAndNodeIndex.Val2;
+
+		THash<TPair<TStr, TStr>, TInt> pairwordIndexTable = createPairedWordIndexTable(graph);
+		TPt<TNodeEdgeNet<TStr, WeightedPredicate> > weightedGraph = weighingStrategy.weigh(graph);
+
+		graph.Clr();
+
+		cout << "done weighing" << endl;
+
+		cerr << "TODO : check - does the indexing for glove have to start from 1 or 0 ??";
+		for (int i = 0; i < weightedGraph->GetNodes(); ++i) {
+			if (weightedGraph->GetNDat(i).SearchCh('<') != 0) {
+				continue;
+			}
+			PBCV bcv = computePBCA(weightedGraph, i, 0.10, 0.000001);
+			int subjectIndex = wordIndexTable.GetDat(weightedGraph->GetNDat(i));
+			for (THash<TPair<TInt, TInt>, TFlt>::TIter iter = bcv.BegI(); iter < bcv.EndI(); iter++) {
+				WeightedPredicate wpred = weightedGraph->GetEDat(iter.GetKey().Val1);
+				TStr pred = wpred.P();
+				TStr obj = weightedGraph->GetNDat(iter.GetKey().Val2);
+				int offset = wordIndexTable.Len();
+				int pairIndex = pairwordIndexTable.GetDat(TPair<TStr, TStr>(pred, obj)) + offset;
+				double freq = iter.GetDat();
+
+				CREC crec = CREC { word1:subjectIndex, word2:pairIndex, val: freq };
+				fwrite(&crec, sizeof(CREC), 1, fout);
+
+				cout << subjectIndex << " has " << pairIndex << " freq " << freq << endl;
+			}
+		}
+
+		//	TTmStopWatch w (true);
+		//	int needed = 10000;
+		//	int * selected = (int*) malloc(needed * sizeof(int));
+		//	int skipped = 0;
+		//	for (int i = 0; i < needed + skipped && i < weightedGraph->GetNodes(); ++i) {
+		//		if (weightedGraph->GetNDat(i).SearchCh('<') != 0) {
+		//			++skipped;
+		//			continue;
+		//		} else {
+		//			selected[i - skipped] = i;
+		//		}
+		//	}
+		//	for (int index = 0; index < needed && index < weightedGraph->GetNodes(); index++) {
+		//		int id = selected[index];
+		//		PBCV bcv = computePBCA(weightedGraph, id, 0.10, 0.000000000001);
+		//		//cout << bcv.toString(weightedGraph) << endl;
+		//		if (index % 1000 == 0) {
+		//			cout << "another 1000" << weightedGraph->GetNDat(id).CStr() << "->" << bcv.toString(weightedGraph) << endl;
+		//		}
+		//	}
+		//
+		//	w.Stop();
+		//	cout << w.GetMSecInt() << "ms" << endl;
+		return;
+	}
+
+};
 
 namespace RDF2CO {
+
+//precompute the BCA order
+//void performExperiments() {
+//	TStr graphInputFile = "../../datasets/dbPedia/allData27_30M.nt";
+//	auto BCAOrderFile = "BCAComputeOrder.txt";
+//	BCAOrder::ComputeBCAOrder(graphInputFile, BCAOrderFile);
+//}
+
 void performExperiments() {
+	TStr graphInputFile = "../../datasets/dbPedia/allData27_30M.nt";
+	UniformWeigher weigher;
+	//two options, if the BCA order has been precomputed:
+	TStr precomputedBCAOrderFile = "BCAComputeOrder.txt";
+	Co_occurenceComputer c(graphInputFile, precomputedBCAOrderFile, weigher);
+	//if it has not been precomputed:
+	//Co_occurenceComputer c(graphInputFile, weigher);
+
+	//now, c can be used to compute co_occurence matrices
+	for (double alpha = 0.5; alpha <= 0.5; alpha += 0.1) {
+		for (double eps = 0.001; eps >= 0.00001; eps /= 10) {
+
+			string glove_input_file = "glove_input_file_out_alpha_" + boost::lexical_cast<std::string>(alpha) + "_eps_" + boost::lexical_cast<std::string>(eps) + ".bin";
+
+			string glove_vocab_file = "glove_vocab_file_out_alpha_" + boost::lexical_cast<std::string>(alpha) + "_eps_" + boost::lexical_cast<std::string>(eps) + ".bin";
+
+			cout << "writing to " << glove_input_file << endl;
+			cout << "\tand " << glove_vocab_file << endl;
+
+			FILE* glove_input_file_out = fopen(glove_input_file.c_str(), "w");
+			FILE* glove_vocab_file_out = fopen(glove_vocab_file.c_str(), "w");
+
+			c.computeFrequenciesIncludingEdges(alpha, eps, glove_input_file_out, glove_vocab_file_out, true, false);
+
+			fclose(glove_input_file_out);
+			fclose(glove_vocab_file_out);
+		}
+	}
+
+}
+
+void performExperimentsOLD() {
 //	TStr file = "wikidata-simple-statements-10_000000-sample.nt";
 //TStr file = "sample-wikidata-terms-fragment.nt";
 //TStr file = "sample-wikidata-terms.nt";
@@ -639,8 +722,6 @@ void performExperiments() {
 	BCAOrder::ComputeBCAOrder(file, BCAOrderFile);
 
 //InversePredicateFrequencyWeigher weigher = InversePredicateFrequencyWeigher();
-
-	UniformWeigher weigher;
 
 //computeFrequenciesPushBCA(file, weigher, outfile);
 //	bool normalize = true;
