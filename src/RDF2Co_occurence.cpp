@@ -15,6 +15,10 @@
 #include "utils.h"
 #include "boost/dynamic_bitset.hpp"
 #include "boost/graph/graph_traits.hpp"
+#include <boost/graph/graph_traits.hpp>
+#include <boost/graph/adjacency_list.hpp>
+//#include <boost/graph/topological_sort.hpp>
+#include <utility>                   // for std::pair
 #include "PrintTime.h"
 
 namespace {
@@ -301,8 +305,13 @@ class my_bitset: public boost::dynamic_bitset<> {
 
 private:
 	boost::dynamic_bitset<>::size_type lastFound = 0;
+	boost::dynamic_bitset<>::size_type lastSetToTrue = 0;
+
 public:
 	boost::dynamic_bitset<>::size_type find_any() {
+		if ((*this)[lastSetToTrue]) {
+			return lastSetToTrue;
+		}
 		this->lastFound = this->find_next(lastFound);
 		if (lastFound != this->npos) {
 			return lastFound;
@@ -312,6 +321,13 @@ public:
 		}
 
 	}
+
+	dynamic_bitset& setTrueAndRecord(size_type n) {
+		this->set(n, true);
+		this->lastSetToTrue = n;
+		return *this;
+	}
+
 };
 
 //does the vector contain all numbers from 0 till all.Len()-1 ?
@@ -332,6 +348,8 @@ bool allNumbersIn(TVec<TInt> all) {
  *
  * 1. nodes with zero out degree (or one for which all outgoing edges points to nodes with precomputed BCAs) should always be computed first
  * 2. if no such node exists, then the node with highest in degree is selected
+ *
+ * the input graph MUST have nodes indexed 0 till Nodes()-1
  *
  */
 TVec<TInt> determineBCVcomputeOrderOptimized(TPt<TNodeEdgeNet<TStr, TStr> > baseGraph) {
@@ -389,7 +407,8 @@ TVec<TInt> determineBCVcomputeOrderOptimized(TPt<TNodeEdgeNet<TStr, TStr> > base
 			TNGraph::TNodeI m = prunable->GetNI(mid);
 			//it is enough to check the outdegree. The TNGraph type guarantees that there is only one directed edge between an ordered pair of nodes.
 			if (m.GetOutDeg() == 1) {
-				zeroOutDegrees[m.GetId()] = true;
+				zeroOutDegrees.setTrueAndRecord(m.GetId());
+				//zeroOutDegrees[m.GetId()] = true;
 			}
 		}
 		//finalize
@@ -481,6 +500,429 @@ TVec<TInt> determineBCVcomputeOrderOptimized(TPt<TNodeEdgeNet<TStr, TStr> > base
 	return finalOrder;
 }
 
+//int bla() {
+//	using namespace boost;
+//	// create a typedef for the Graph type
+//	typedef adjacency_list<vecS, vecS, bidirectionalS> Graph;
+//
+//	// Make convenient labels for the vertices
+//	int A = 0;
+//	int B = 1;
+//
+//	const int num_vertices = 5;
+//
+//	// declare a graph object
+//	Graph g(num_vertices);
+//
+//	// add the edges to the graph object
+//	add_edge(A, B, g);
+//	return 0;
+//}
+//
+///**
+// * Some potential future ideas for optimization:
+// * do we need to know about both in AND out edges or only about one of them if we only need to know the count of the in/out edges, we can store that in an array!
+// */
+//
+///**
+// * Attempts to determine the order in which most BCA computations can be reused.
+// * This is using the heuristic that
+// *
+// * 1. nodes with zero out degree (or one for which all outgoing edges points to nodes with precomputed BCAs) should always be computed first
+// * 2. if no such node exists, then the node with highest in degree is selected
+// *
+// * the input graph MUST have nodes indexed 0 till Nodes()-1
+// *
+// * Uses boost graphs as the Snap ones seem to slow when they get large
+// */
+//TVec<TInt> determineBCVcomputeOrderOptimizedBOOST(TPt<TNodeEdgeNet<TStr, TStr> > baseGraph) {
+//	bla();
+//
+//	using namespace boost;
+//// TNGraph: directed graph (single directed edge between an ordered pair of nodes)
+////We throw away the multiplicity of edges between two nodes. For the BCA caching it does not make a difference whether it is needed once or more times by the same other node
+////We also remove all self edges
+//
+//	typedef adjacency_list<hash_setS, // Store out-edges of each vertex in a unordered set
+//			listS,
+//			// Store vertex set in a std::vector
+//			bidirectionalS // The file dependency graph is directed
+//	> Graph;
+//
+//	typedef graph_traits<Graph> GT;
+//	typedef GT::vertex_descriptor Vertex;
+//	typedef GT::edge_descriptor Edge;
+//	typedef GT::vertex_iterator vertex_iter;
+//
+////Assumption: basegraph has nodes 0->nodes-1
+//
+//	cout << currentTime() << "copying graph" << endl;
+//
+//	Graph prunable_graph(baseGraph->GetNodes());
+//
+//	const unsigned int startSize = baseGraph->GetNodes();
+//	{ //scoping allVertices
+//	  //We keep iterators, they will even remain valid on removal, as we us a linked list!
+//		std::vector<vertex_iter> allVertices(startSize);
+//
+//		int i = 0;
+//		for (std::pair<vertex_iter, vertex_iter> vp = vertices(prunable_graph); vp.first != vp.second; ++vp.first) {
+//			allVertices[i] = vp.first;
+//			i++;
+//		}
+//		IAssert(allVertices.size() == startSize);
+//		cout << currentTime() << "copying graph - nodes copied" << endl;
+//		for (TNodeEdgeNet<TStr, TStr>::TEdgeI EI = baseGraph->BegEI(); EI < baseGraph->EndEI(); EI++) {
+//			int src = EI.GetSrcNId();
+//			int dst = EI.GetDstNId();
+//
+//			Vertex srcV = *(allVertices[src]);
+//			Vertex dstV = *(allVertices[dst]);
+//
+//			if (src != dst) {
+//				add_edge(srcV, dstV, prunable_graph);
+//				//prunable->AddEdge(src, dst);
+//			}
+//		}
+//
+//	} //end scoping allVertices
+//	baseGraph = NULL; //making sure we do not accidentally write to the original
+//	cout << currentTime() << "graph copied" << endl;
+//
+//	TVec<TInt> finalOrder;
+//	finalOrder.Reserve(startSize);
+//
+//	my_bitset zeroOutDegrees;
+//	zeroOutDegrees.resize(startSize, false);
+//
+//	boost::dynamic_bitset<> todo;
+//	todo.resize(startSize, true);
+//
+//	//we do a first quicker check to eliminate all nodes which are not part of a cycle
+//	typename property_map<Graph, vertex_index_t>::type index = get(vertex_index, prunable_graph);
+//	for (std::pair<vertex_iter, vertex_iter> vp = vertices(prunable_graph); vp.first != vp.second; ++vp.first) {
+//		unsigned int outDegree = out_degree(*vp.first, prunable_graph);
+//
+//		if (outDegree == 0) {
+//			int a = index[*vp.first];
+//
+//			//zeroOutDegrees[]
+//		}
+//
+//	}
+//
+////	for (TNGraph::TNodeI node = prunable->BegNI(); node < prunable->EndNI(); node++) {
+////		if (node.GetOutDeg() == 0) {
+////			zeroOutDegrees[node.GetId()] = true;
+////		}
+////	}
+//
+////	const int infoFrequency = startSize > 1000000 ? 100000 : 10000;
+////
+////	unsigned long int n;
+////	while ((n = zeroOutDegrees.find_any()) != zeroOutDegrees.npos) {
+////		//const int n = zeroOutDegrees.find_first();
+////		zeroOutDegrees[n] = false;
+////		//n will be removed from the graph. Add all nodes which will get zero out degree to the set
+////		TNGraph::TNodeI niter = prunable->GetNI(n);
+////		for (int inEdgeNumber = 0; inEdgeNumber < niter.GetInDeg(); inEdgeNumber++) {
+////			int mid = niter.GetInNId(inEdgeNumber);
+////			TNGraph::TNodeI m = prunable->GetNI(mid);
+////			//it is enough to check the outdegree. The TNGraph type guarantees that there is only one directed edge between an ordered pair of nodes.
+////			if (m.GetOutDeg() == 1) {
+////				zeroOutDegrees.setTrueAndRecord(m.GetId());
+////				//zeroOutDegrees[m.GetId()] = true;
+////			}
+////		}
+////		//finalize
+////		prunable->DelNode(n);
+////		todo[n] = false;
+////		finalOrder.Add(n);
+////		if (finalOrder.Len() % infoFrequency == 0) {
+////			cout << currentTime() << finalOrder.Len() << "/" << startSize << " done" << endl;
+////		}
+////	}
+////
+////	cout << currentTime() << "After first fast phase, " << finalOrder.Len() << "/" << startSize << " nodes are done, starting iterative phase" << endl;
+////
+////	//now the more general case including loops is handled
+////	TMaxPriorityQueue<TInt> highestInDegree;
+////	//set-up the  highestInDegree PQ,
+////	for (TNGraph::TNodeI node = prunable->BegNI(); node < prunable->EndNI(); node++) {
+////		//if the outdegree is 0, there is no need to get the node to the highestInDegree as it would be removed immediately again, but there are no zeroOutDegreeNodes at this point
+////		//We add one to indicate that even a node with 0 in degree is still a valid node.
+////		highestInDegree.Insert(node.GetId(), node.GetInDeg() + 1);
+////	}
+////	//algo start
+////	while (prunable->GetNodes() > 0) {
+////		//while (zeroOutDegrees.any()) {
+////		//	int n = zeroOutDegrees.find_first();
+////		while ((n = zeroOutDegrees.find_any()) != zeroOutDegrees.npos) {
+////			zeroOutDegrees[n] = false;
+////			//n will be removed from the graph. Add all nodes which will get zero out degree to the set
+////			TNGraph::TNodeI niter = prunable->GetNI(n);
+////			for (int inEdgeNumber = 0; inEdgeNumber < niter.GetInDeg(); inEdgeNumber++) {
+////				int mid = niter.GetInNId(inEdgeNumber);
+////				TNGraph::TNodeI m = prunable->GetNI(mid);
+////				//it is enough to check the outdegree. The TNGraph type guarantees that there is only one directed edge between an ordered pair of nodes.
+////				if (m.GetOutDeg() == 1) {
+////					zeroOutDegrees[m.GetId()] = true;
+////				}
+////			}
+////			//finalize
+////			prunable->DelNode(n);
+////			//We do not set indegree of n to 0 in PQueueu. PQueue does not support direct removal, but this is somewhat expensive. We use the to_do bitset instead.
+////			//			highestInDegree.SetPriority(n, 0.0);
+////
+////			todo[n] = false;
+////			finalOrder.Add(n);
+////			if (finalOrder.Len() % infoFrequency == 0) {
+////				cout << currentTime() << finalOrder.Len() << "/" << startSize << " done" << endl;
+////			}
+////		}
+////		if (prunable->GetNodes() == 0) {
+////			break;
+////		}
+////		TInt k = -1;
+////		do {
+////			IAssert(highestInDegree.Size() > 0);
+////			//there are no nodes with zero out degree in the graph left. Attempt to break a cycle by removing the one with highest in degree
+////			k = highestInDegree.PopMax();
+////		} while (!todo[k]);
+////		//add all nodes which will get a zero out degree to set
+////		IAssert(prunable->IsNode(k));
+////		TNGraph::TNodeI kiter = prunable->GetNI(k);
+////		IAssert(kiter.GetOutDeg() > 0);
+////		for (int inEdgeNumber = 0; inEdgeNumber < kiter.GetInDeg(); inEdgeNumber++) {
+////			int lid = kiter.GetInNId(inEdgeNumber);
+////			TNGraph::TNodeI l = prunable->GetNI(lid);
+////			if (l.GetOutDeg() == 1) {
+////				zeroOutDegrees[l.GetId()] = true;
+////			}
+////		}
+////		//update the priorities of all nodes k is pointing to
+////		for (int outEdgeNumber = 0; outEdgeNumber < kiter.GetOutDeg(); outEdgeNumber++) {
+////			int lid = kiter.GetOutNId(outEdgeNumber);
+////			TNGraph::TNodeI l = prunable->GetNI(lid);
+////			//We add one to indicate that even a node with 0 in degree is still a valid node.
+////			//Here we use the fact that there are no self edges in the graph. Otherwise we have to make sure that lid != k
+////			highestInDegree.SetPriority(lid, l.GetInDeg() - 1 + 1);
+////		}
+////		//finalize
+////		prunable->DelNode(k);
+////		todo[k] = false;
+////		finalOrder.Add(k);
+////		if (finalOrder.Len() % infoFrequency == 0) {
+////			cout << currentTime() << finalOrder.Len() << "/" << startSize << " done" << endl;
+////		}
+////
+////	}
+////	IAssert(startSize == finalOrder.Len());
+////	IAssert(todo.find_first() == todo.npos);
+////	IAssert(allNumbersIn(finalOrder));
+//	return finalOrder;
+//}
+
+class Node {
+public:
+	boost::unordered_set<Node*> inedgeSources;
+	boost::unordered_set<Node*> outedgeDestination;
+	int ID;
+
+	Node(int ID) :
+			ID(ID) {			//Intentionally empty
+	}
+
+	int getInDeg() {
+		return inedgeSources.size();
+	}
+	int getOutDeg() {
+		return outedgeDestination.size();
+	}
+
+};
+
+// directed graph (single directed edge between an ordered pair of nodes)
+class MyGraph: public std::vector<Node> {
+public:
+	MyGraph(TPt<TNodeEdgeNet<TStr, TStr> > baseGraph) {
+		cout << currentTime() << "copying graph" << endl;
+		const int totalNodes = baseGraph->GetNodes();
+		this->reserve(totalNodes);
+		for (int i = 0; i < totalNodes; i++) {
+			this->emplace_back(i);
+		}
+		cout << currentTime() << "copying graph - nodes copied" << endl;
+
+		//We throw away the multiplicity of edges between two nodes. For the BCA caching it does not make a difference whether it is needed once or more times by the same other node
+		//We also remove all self edges
+		for (TNodeEdgeNet<TStr, TStr>::TEdgeI EI = baseGraph->BegEI(); EI < baseGraph->EndEI(); EI++) {
+			int src = EI.GetSrcNId();
+			int dst = EI.GetDstNId();
+			if (src != dst) {
+				//boost::unordered_set<Node*>::value_type  == Node*
+				//eclipse does not find these defnitions, gcc does...
+				boost::unordered_set<Node*>::value_type sourceNode = &(*this)[src];
+				boost::unordered_set<Node*>::value_type destinationNode = &(*this)[dst];
+				sourceNode->outedgeDestination.insert(destinationNode);
+				destinationNode->inedgeSources.insert(sourceNode);
+			}
+		}
+		cout << currentTime() << "graph copied" << endl;
+	}
+};
+
+///**
+// * Attempts to determine the order in which most BCA computations can be reused.
+// * This is using the heuristic that
+// *
+// * 1. nodes with zero out degree (or one for which all outgoing edges points to nodes with precomputed BCAs) should always be computed first
+// * 2. if no such node exists, then the node with highest in degree is selected
+// *
+// * the input graph MUST have nodes indexed 0 till Nodes()-1
+// *
+// */
+TVec<TInt> determineBCVcomputeOrderOptimizedOwnGraph(TPt<TNodeEdgeNet<TStr, TStr> > baseGraph) {
+
+	MyGraph prunable_graph(baseGraph);
+	const int startSize = baseGraph->GetNodes();
+	baseGraph = NULL; //making sure we do not accidentally write to the original
+
+	TVec<TInt> finalOrder;
+	finalOrder.Reserve(startSize);
+
+	my_bitset zeroOutDegrees;
+	zeroOutDegrees.resize(startSize, false);
+
+	boost::dynamic_bitset<> todo;
+	todo.resize(startSize, true);
+
+	//we do a first quicker check to eliminate all nodes which are not part of a cycle
+	for (std::vector<Node>::iterator node = prunable_graph.begin(); node < prunable_graph.end(); node++) {
+		if (node->getOutDeg() == 0) {
+			zeroOutDegrees[node->ID] = true;
+		}
+	}
+
+	const int infoFrequency = startSize > 1000000 ? 100000 : 10000;
+
+	unsigned long int n;
+	while ((n = zeroOutDegrees.find_any()) != zeroOutDegrees.npos) {
+		zeroOutDegrees[n] = false;
+		//n will be removed from the graph. Add all nodes which will get zero out degree to the set
+		Node& toBeRemoved = prunable_graph[n];
+
+		for (boost::unordered_set<Node*>::iterator dependant = toBeRemoved.inedgeSources.begin(); dependant != toBeRemoved.inedgeSources.end(); dependant++) {
+			//it is enough to check the outdegree being 1. The graph guarantees that there is only one directed edge between an ordered pair of nodes.
+			if ((*dependant)->getOutDeg() == 1) {
+				zeroOutDegrees.setTrueAndRecord((*dependant)->ID);
+			}
+			//start removing already
+			boost::unordered_set<Node*>::value_type toBeRemovedAdress = &toBeRemoved;
+			(*dependant)->outedgeDestination.erase(toBeRemovedAdress);
+		}
+		//finalize, delete node
+		//the only things remaining are some bookkeeping:
+#ifndef NDEBUG
+		//probably not necessary anyhow
+		toBeRemoved.inedgeSources.clear();
+#endif
+		todo[n] = false;
+		finalOrder.Add(n);
+		if (finalOrder.Len() % infoFrequency == 0) {
+			cout << currentTime() << finalOrder.Len() << "/" << startSize << " done" << endl;
+		}
+	}
+
+	cout << currentTime() << "After first fast phase, " << finalOrder.Len() << "/" << startSize << " nodes are done, starting iterative phase" << endl;
+
+	//now the more general case including loops is handled
+	TMaxPriorityQueue<TInt> highestInDegree;
+	//set-up the  highestInDegree PQ,
+
+	for (std::vector<Node>::iterator node = prunable_graph.begin(); node < prunable_graph.end(); node++) {
+		//if the outdegree is 0, there is no need to get the node to the highestInDegree as it would be removed immediately again, but there are no zeroOutDegreeNodes at this point
+		//We add one to indicate that even a node with 0 in degree is still a valid node.
+		highestInDegree.Insert(node->ID, node->getInDeg() + 1);
+	}
+
+	//algo start
+	while (finalOrder.Len() < startSize) {
+
+		while ((n = zeroOutDegrees.find_any()) != zeroOutDegrees.npos) {
+			zeroOutDegrees[n] = false;
+			//n will be removed from the graph. Add all nodes which will get zero out degree to the set
+			Node& toBeRemoved = prunable_graph[n];
+
+			for (boost::unordered_set<Node*>::iterator dependant = toBeRemoved.inedgeSources.begin(); dependant != toBeRemoved.inedgeSources.end(); dependant++) {
+				//it is enough to check the outdegree being 1. The graph guarantees that there is only one directed edge between an ordered pair of nodes.
+				if ((*dependant)->getOutDeg() == 1) {
+					zeroOutDegrees.setTrueAndRecord((*dependant)->ID);
+				}
+				//start removing already
+				(*dependant)->outedgeDestination.erase(&toBeRemoved);
+			}
+			//finalize, delete node
+			//the only things remaining are some bookkeeping:
+#ifndef NDEBUG
+			//probably not necessary anyhow
+			toBeRemoved.inedgeSources.clear();
+#endif
+			todo[n] = false;
+			finalOrder.Add(n);
+			if (finalOrder.Len() % infoFrequency == 0) {
+				cout << currentTime() << finalOrder.Len() << "/" << startSize << " done" << endl;
+			}
+		}
+
+		if (finalOrder.Len() == startSize) {
+			break;
+		}
+		TInt k = -1;
+		do {
+			IAssert(highestInDegree.Size() > 0);
+			//there are no nodes with zero out degree in the graph left. Attempt to break a cycle by removing the one with highest in degree
+			k = highestInDegree.PopMax();
+		} while (!todo[k]);
+		//k will be removed add all nodes which will get a zero out degree to set
+		Node& kNode = prunable_graph[k];
+
+		for (boost::unordered_set<Node*>::iterator dependant = kNode.inedgeSources.begin(); dependant != kNode.inedgeSources.end(); dependant++) {
+			//it is enough to check the outdegree being 1. The graph guarantees that there is only one directed edge between an ordered pair of nodes.
+			if ((*dependant)->getOutDeg() == 1) {
+				zeroOutDegrees.setTrueAndRecord((*dependant)->ID);
+			}
+			//start removing already
+			(*dependant)->outedgeDestination.erase(&kNode);
+		}
+
+		//update the priorities of all nodes k is pointing to
+		for (boost::unordered_set<Node*>::iterator dest = kNode.outedgeDestination.begin(); dest != kNode.outedgeDestination.end(); dest++) {
+			//We add one to indicate that even a node with 0 in degree is still a valid node.
+			//Here we use the fact that there are no self edges in the graph. Otherwise we have to make sure that dest.id != k
+			highestInDegree.SetPriority((*dest)->ID, (*dest)->getInDeg() - 1 + 1);
+			//start removing already
+			(*dest)->inedgeSources.erase(&kNode);
+		}
+
+		//finalize, the removal is already done in the adjecancy lists
+#ifndef NDEBUG
+		//probably not necessary anyhow
+		kNode.inedgeSources.clear();
+		kNode.outedgeDestination.clear();
+#endif
+		todo[k] = false;
+		finalOrder.Add(k);
+		if (finalOrder.Len() % infoFrequency == 0) {
+			cout << currentTime() << finalOrder.Len() << "/" << startSize << " done" << endl;
+		}
+
+	}
+	IAssert(startSize == finalOrder.Len());
+	IAssert(todo.find_first() == todo.npos);
+	IAssert(allNumbersIn(finalOrder));
+	return finalOrder;
+}
 } //end anonymous namspace
 
 void testBCAComputeOrderSpeed(TStr inputFilename, TStr outputFileName) {
@@ -488,7 +930,8 @@ void testBCAComputeOrderSpeed(TStr inputFilename, TStr outputFileName) {
 	TPt<TNodeEdgeNet<TStr, TStr> > graph = graphAndNodeIndex.Val1;
 	cout << currentTime() << " Now computing BCV compute order" << endl;
 	TVec<TInt, int> order;
-	order = determineBCVcomputeOrderOptimized(graph);
+	//order = determineBCVcomputeOrderOptimized(graph);
+	order = determineBCVcomputeOrderOptimizedOwnGraph(graph);
 	cout << currentTime() << "end determining BCV compute order, writing to file" << endl;
 
 	ofstream myfile(outputFileName.CStr());
@@ -516,7 +959,7 @@ void testBCAComputeOrderSpeed(TStr inputFilename, TStr outputFileName) {
  *
  */
 void computeFrequenciesIncludingEdges(TStr filename, GraphWeigher& weighingStrategy, double bca_alpha, double bca_eps, FILE * glove_input_file_out, FILE * glove_vocab_file_out, bool normalize,
-		bool onlyEntities) {
+bool onlyEntities) {
 
 	TPt<TNodeEdgeNet<TStr, WeightedPredicate> > weightedGraph;
 	TPair<TVec<TStr>, THash<TStr, int>> predLabelsAndIDs;
@@ -729,10 +1172,10 @@ void computeFrequenciesPushBCA(TStr filename, GraphWeigher& weighingStrategy, FI
 
 namespace RDF2CO {
 void performExperiments() {
-	TStr file = "wikidata-simple-statements-10_000000-sample.nt";
+//	TStr file = "wikidata-simple-statements-10_000000-sample.nt";
 //TStr file = "sample-wikidata-terms-fragment.nt";
 //TStr file = "sample-wikidata-terms.nt";
-//	TStr file = "../../datasets/aifb_fixed_complete.nt";
+	TStr file = "../../datasets/dbPedia/allData27_30M.nt";
 //TStr file = "SmallTest8_multiplePO.nt";
 
 	FILE* glove_input_file_out = fopen("glove_input_file_out.bin", "w");
