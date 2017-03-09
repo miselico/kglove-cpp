@@ -473,7 +473,7 @@ public:
 			fprintf(glove_vocab_file_out, "%s nofr\n", nodeLabel.CStr());
 			counter++;
 			if ((counter % infoFrequency) == 0) {
-				cout << "Processed " << counter << "/" << _order.Len() << " BCV computations" << endl;
+				cout << currentTime() << "Processed " << counter << "/" << _order.Len() << " BCV computations" << endl;
 			}
 		}
 

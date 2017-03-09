@@ -124,10 +124,6 @@ TPair<TPt<TNodeEdgeNet<TStr, TStr> >, THash<TStr, int> > buildRDFGraphInternal(T
 	THashSet<TStr> stringpool;
 
 	while (FInPt->GetNextLn(line)) {
-		count++;
-		if (count % 1000000 == 0) {
-			cout << currentTime() << "Processed " << count << " lines" << endl;
-		}
 		if (line.IsWs()) {
 			continue;
 		}
@@ -135,9 +131,13 @@ TPair<TPt<TNodeEdgeNet<TStr, TStr> >, THash<TStr, int> > buildRDFGraphInternal(T
 			//comment
 			continue;
 		}
+		count++;
+		if (count % 1000000 == 0) {
+			cout << currentTime() << "Read " << count << " triples" << endl;
+		}
 		Triple valuesnotPooled = parsetripleLine(line);
 		//This saves about 10% memory on a small test. Perhaps more on a larger one.
-		Triple values (valuesnotPooled.S(), stringpool.GetKey(stringpool.AddKey(valuesnotPooled.P())), valuesnotPooled.O());
+		Triple values(valuesnotPooled.S(), stringpool.GetKey(stringpool.AddKey(valuesnotPooled.P())), valuesnotPooled.O());
 		if (removeLiteral && values.O().GetCh(0) == '"') {
 			//do not add this literal
 			continue;
