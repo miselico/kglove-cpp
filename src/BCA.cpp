@@ -161,6 +161,47 @@ BCV computeBCAIncludingEdges(TPt<TNodeEdgeNet<TStr, WeightedPredicate> > network
 	return p;
 }
 
+BCV computeBCACached(TPt<TNodeEdgeNet<TStr, WeightedPredicate> > network, int b_ID, double alpha, double eps, THash<TInt, BCV> & bcvCache) {
+	BCAQueue Q;
+	BCV p;
+	Q.addPaintTo(b_ID, 1.0);
+	while (!Q.empty()) {
+		TPair<TInt, TFlt> element = Q.pop();
+		int i = element.Val1;
+		double w = element.Val2;
+		BCV precomputed;
+		if (bcvCache.IsKeyGetDat(i, precomputed)) {
+			//there is a precomputed entry
+			//TODO double check this:
+			for (THash<TInt, TFlt>::TIter iter = precomputed.BegI(); iter < precomputed.EndI(); iter++) {
+				double scaled = iter.GetDat() * w;
+				//Here the algorithm might have a slight difference with the original version.
+				//The problem is that we cannot know the threshold directly because of the weights in the graph, this seems to be an okay estimation
+				if (scaled > (eps * alpha)) {
+					p.fixPaint(iter.GetKey(), scaled);
+				}
+			}
+		} else {
+			p.fixPaint(i, alpha * w);
+			if (w < eps) {
+				continue;
+			}
+			TNodeEdgeNet<TStr, WeightedPredicate>::TNodeI node_i = network->GetNI(i);
+			int node_i_outdeg = node_i.GetOutDeg();
+
+			for (int outEdge = 0; outEdge < node_i_outdeg; ++outEdge) {
+				int j = node_i.GetOutNId(outEdge);
+				WeightedPredicate edgeData = node_i.GetOutEDat(outEdge);
+				double edgeWeight = edgeData.W();
+				double paintToJ = (1.0 - alpha) * w * edgeWeight;
+				Q.addPaintTo(j, paintToJ);
+			}
+		}
+	}
+	bcvCache.AddDat(b_ID, p);
+	return p;
+}
+
 BCV computeBCAIncludingEdgesCached(TPt<TNodeEdgeNet<TStr, WeightedPredicate> > network, int b_ID, double alpha, double eps, THash<TStr, int> predIDs, THash<TInt, BCV> & bcvCache) {
 	BCAQueue Q;
 	BCV p;

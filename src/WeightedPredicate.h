@@ -28,11 +28,11 @@ public:
 			TPair(predicate, weight) {
 	}
 
-	TStr P() {
+	const TStr P() const {
 		return this->Val1;
 	}
 
-	long double W() {
+	const long double W() const {
 		return this->Val2.Val;
 	}
 
