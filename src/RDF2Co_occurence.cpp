@@ -28,10 +28,16 @@ namespace BCAOrder {
 class my_bitset: public boost::dynamic_bitset<> {
 
 private:
-	boost::dynamic_bitset<>::size_type lastFound = 0;
-	boost::dynamic_bitset<>::size_type lastSetToTrue = 0;
+	boost::dynamic_bitset<>::size_type lastFound;
+	boost::dynamic_bitset<>::size_type lastSetToTrue;
 
 public:
+
+	my_bitset() :
+			lastFound(0), lastSetToTrue(0) {
+
+	}
+
 	boost::dynamic_bitset<>::size_type find_any() {
 		if ((*this)[lastSetToTrue]) {
 			return lastSetToTrue;
@@ -193,47 +199,21 @@ TVec<TInt> determineBCAcomputeOrder(TPt<TNodeEdgeNet<TStr, TStr> > baseGraph) {
 	for (std::vector<Node>::const_iterator node = prunable_graph.cbegin(); node < prunable_graph.cend(); node++) {
 		//if the outdegree is 0, there is no need to get the node to the highestInDegree as it would be removed immediately again, but there are no zeroOutDegreeNodes at this point
 		//We add one to indicate that even a node with 0 in degree is still a valid node.
-		highestInDegree.Insert(node->ID, node->getInDeg() + 1);
+		if (todo[node->ID]) {
+			highestInDegree.Insert(node->ID, node->getInDeg() + 1);
+		}
 	}
 
 	//algo start
+
 	while (finalOrder.Len() < startSize) {
-
-		while ((n = zeroOutDegrees.find_any()) != zeroOutDegrees.npos) {
-			zeroOutDegrees[n] = false;
-			//n will be removed from the graph. Add all nodes which will get zero out degree to the set
-			Node& toBeRemoved = prunable_graph[n];
-
-			for (boost::unordered_set<Node*>::const_iterator dependant = toBeRemoved.inedgeSources.cbegin(); dependant != toBeRemoved.inedgeSources.cend(); dependant++) {
-				//it is enough to check the outdegree being 1. The graph guarantees that there is only one directed edge between an ordered pair of nodes.
-				if ((*dependant)->getOutDeg() == 1) {
-					zeroOutDegrees.setTrueAndRecord((*dependant)->ID);
-				}
-				//start removing already
-				(*dependant)->outedgeDestination.erase(&toBeRemoved);
-			}
-			//finalize, delete node
-			//the only things remaining are some bookkeeping:
-#ifndef NDEBUG
-			//probably not necessary anyhow
-			toBeRemoved.inedgeSources.clear();
-#endif
-			todo[n] = false;
-			finalOrder.Add(n);
-			if (finalOrder.Len() % infoFrequency == 0) {
-				cout << currentTime() << finalOrder.Len() << "/" << startSize << " done" << endl;
-			}
-		}
-
-		if (finalOrder.Len() == startSize) {
-			break;
-		}
+		//break at least one loop
 		TInt k = -1;
 		do {
 			IAssert(highestInDegree.Size() > 0);
 			//there are no nodes with zero out degree in the graph left. Attempt to break a cycle by removing the one with highest in degree
 			k = highestInDegree.PopMax();
-		} while (!todo[k]);
+		} while (!todo[k]);		//this check is needed because the priorities for nodes removed in the loop below are not removed from the queueu, only marked as done
 		//k will be removed add all nodes which will get a zero out degree to set
 		Node& kNode = prunable_graph[k];
 
@@ -267,7 +247,41 @@ TVec<TInt> determineBCAcomputeOrder(TPt<TNodeEdgeNet<TStr, TStr> > baseGraph) {
 			cout << currentTime() << finalOrder.Len() << "/" << startSize << " done" << endl;
 		}
 
+		if (finalOrder.Len() == startSize) {
+			break;
+		}
+
+		//remove as much as possible without having to break a loop
+		while ((n = zeroOutDegrees.find_any()) != zeroOutDegrees.npos) {
+			zeroOutDegrees[n] = false;
+			//n will be removed from the graph. Add all nodes which will get zero out degree to the set
+			Node& toBeRemoved = prunable_graph[n];
+
+			for (boost::unordered_set<Node*>::const_iterator dependant = toBeRemoved.inedgeSources.cbegin(); dependant != toBeRemoved.inedgeSources.cend(); dependant++) {
+				//it is enough to check the outdegree being 1. The graph guarantees that there is only one directed edge between an ordered pair of nodes.
+				if ((*dependant)->getOutDeg() == 1) {
+					zeroOutDegrees.setTrueAndRecord((*dependant)->ID);
+				}
+				//start removing already
+				(*dependant)->outedgeDestination.erase(&toBeRemoved);
+			}
+			//finalize, delete node
+			//the only things remaining are some bookkeeping:
+#ifndef NDEBUG
+			//probably not necessary anyhow
+			toBeRemoved.inedgeSources.clear();
+#endif
+			todo[n] = false;
+			finalOrder.Add(n);
+			if (finalOrder.Len() % infoFrequency == 0) {
+				cout << currentTime() << finalOrder.Len() << "/" << startSize << " done" << endl;
+			}
+		}
+
 	}
+
+	cout << currentTime() << "All done" << finalOrder.Len() << "/" << startSize << " done" << endl;
+
 	IAssert(startSize == finalOrder.Len());
 	IAssert(todo.find_first() == todo.npos);
 	IAssert(allNumbersIn(finalOrder));
@@ -467,16 +481,17 @@ public:
 				//CREC crec = CREC { word1:contextWordGloveID, word2:focusWordGloveID, val: freq };
 				fwrite(&crec, sizeof(CREC), 1, glove_input_file_out);
 			}
-
-			TStr nodeLabel = _weightedGraph->GetNDat(focusWordGraphID);
-
-			fprintf(glove_vocab_file_out, "%s nofr\n", nodeLabel.CStr());
 			counter++;
 			if ((counter % infoFrequency) == 0) {
 				cout << currentTime() << "Processed " << counter << "/" << _order.Len() << " BCV computations" << endl;
 			}
 		}
 
+		//still need to write all node labels to the vocab file
+		for (int i = 0; i < this->_weightedGraph->GetNodes(); i++) {
+			TStr nodeLabel = _weightedGraph->GetNDat(i);
+			fprintf(glove_vocab_file_out, "%s nofr\n", nodeLabel.CStr());
+		}
 		//still need to write all predicates to the vocab file
 
 		for (TVec<TStr>::TIter it = _predicateLabels.BegI(); it < _predicateLabels.EndI(); it++) {
@@ -677,13 +692,17 @@ namespace RDF2CO {
 //}
 
 void performExperiments() {
-	TStr graphInputFile = "../../datasets/dbPedia/allData27_30M.nt";
+//	TStr graphInputFile = "../../datasets/dbPedia/allData27_30M.nt";
+
+	//TStr graphInputFile = "SmallTest.nt";
+	TStr graphInputFile = "SmallTest9_loop.nt";
+
 	UniformWeigher weigher;
 	//two options, if the BCA order has been precomputed:
-	TStr precomputedBCAOrderFile = "BCAComputeOrder.txt";
-	Co_occurenceComputer c(graphInputFile, precomputedBCAOrderFile, weigher);
+	//TStr precomputedBCAOrderFile = "BCAComputeOrder.txt";
+	//Co_occurenceComputer c(graphInputFile, precomputedBCAOrderFile, weigher);
 	//if it has not been precomputed:
-	//Co_occurenceComputer c(graphInputFile, weigher);
+	Co_occurenceComputer c(graphInputFile, weigher);
 
 	//now, c can be used to compute co_occurence matrices
 	for (double alpha = 0.5; alpha <= 0.5; alpha += 0.1) {
