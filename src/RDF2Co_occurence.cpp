@@ -755,8 +755,8 @@ void performExperiments() {
 //TStr precomputedBCAOrderFile = "BCAComputeOrder.txt";
 //Co_occurenceComputer c(graphInputFile, precomputedBCAOrderFile, weigher);
 //if it has not been precomputed:
-//	co_occurence_computer::Co_occurenceComputer c(graphInputFile, weigher);
-	co_occurence_computer::Co_occurenceComputer_Ultimate c(graphInputFile, weigher, weigher);
+	co_occurence_computer::Co_occurenceComputer c(graphInputFile, weigher);
+//	co_occurence_computer::Co_occurenceComputer_Ultimate c(graphInputFile, weigher, weigher);
 //now, c can be used to compute co_occurence matrices
 	for (double alpha = 0.5; alpha <= 0.5; alpha += 0.1) {
 		for (double eps = 0.001; eps >= 0.00001; eps /= 10) {
@@ -771,9 +771,9 @@ void performExperiments() {
 			FILE* glove_input_file_out = fopen(glove_input_file.c_str(), "w");
 			FILE* glove_vocab_file_out = fopen(glove_vocab_file.c_str(), "w");
 
-			c.computeFrequenciesIncludingEdgesTheUltimate(alpha, eps, glove_input_file_out, glove_vocab_file_out, true, false);
+			//c.computeFrequenciesIncludingEdgesTheUltimate(alpha, eps, glove_input_file_out, glove_vocab_file_out, true, false);
 
-			//c.computeFrequenciesIncludingEdges(alpha, eps, glove_input_file_out, glove_vocab_file_out, true, false);
+			c.computeFrequenciesIncludingEdges(alpha, eps, glove_input_file_out, glove_vocab_file_out, true, false);
 
 			fclose(glove_input_file_out);
 			fclose(glove_vocab_file_out);

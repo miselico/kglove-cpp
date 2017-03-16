@@ -302,7 +302,7 @@ PBCV computePBCA(TPt<TNodeEdgeNet<TStr, WeightedPredicate> > network, int b_ID, 
 			WeightedPredicate edgeData = node_i.GetOutEDat(outEdge);
 			double edgeWeight = edgeData.W();
 			double paintToJ = w * edgeWeight;
-
+			cerr << "It seems the combinednode is not exactly what is should be! node_i.GetOutEId(outEdge) is not the edge label" << endl;
 			TPair<TInt, TInt> combinedNode = TPair<TInt, TInt>(node_i.GetOutEId(outEdge), j);
 			//stand-in for p_i = p_i + alpha*w
 			p.fixPaint(combinedNode, alpha * paintToJ);
