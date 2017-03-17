@@ -9,19 +9,20 @@
 #define MURMURHASHADDITIONS_H_
 
 #include "MurmurHash3.h"
+#include <string>
 
-#include "Snap.h"
+using namespace std;
 
 const int MURMURSEED = 65765745;
 
 const char base16[] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F' };
 
-inline TStr myhash(TStr in) {
-	char* cstr = in.CStr();
-	int len = in.Len();
+inline string myhash(const string in) {
+	char* cstr = in.c_str();
+	int len = in.size();
 	unsigned char* val = (unsigned char*) malloc(16);
 	MurmurHash3_x86_128(cstr, len, MURMURSEED, val);
-	char* stringVal = (char*) malloc(32 + 1);
+	char* stringVal = (char*) malloc(32);
 	for (int i = 0; i < 16; ++i) {
 		unsigned char c = val[i];
 		unsigned char c1_index = c >> 4;
@@ -31,8 +32,9 @@ inline TStr myhash(TStr in) {
 		stringVal[2 * i] = c1;
 		stringVal[2 * i + 1] = c2;
 	}
-	stringVal[32] = 0;
-	return TStr(stringVal);
+
+	string result(stringVal, 32);
+	return result;
 }
 
 #endif /* MURMURHASHADDITIONS_H_ */

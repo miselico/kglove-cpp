@@ -5,11 +5,12 @@
  *      Author: cochez
  */
 
-#ifndef GRAPHWEIGHER_H_
-#define GRAPHWEIGHER_H_
+#ifndef GRAPHWEIGHER_HA_
+#define GRAPHWEIGHER_HA_
 
-#include "Snap.h"
-#include "WeightedPredicate.h"
+#include <memory>
+#include "graph/LabeledGraph.h"
+#include <unordered_map>
 
 class GraphWeigher {
 protected:
@@ -21,47 +22,47 @@ public:
 	virtual ~GraphWeigher() {
 
 	}
-	virtual TPt<TNodeEdgeNet<TStr, WeightedPredicate> > weigh(TPt<TNodeEdgeNet<TStr, TStr> >) const = 0;
+	virtual void weigh(std::shared_ptr<QuickGraph::LabeledGraph>) const = 0;
 };
 
 class UniformWeigher: public GraphWeigher {
 public:
-	virtual TPt<TNodeEdgeNet<TStr, WeightedPredicate> > weigh(TPt<TNodeEdgeNet<TStr, TStr> >) const;
+	virtual void weigh(std::shared_ptr<QuickGraph::LabeledGraph>) const;
 };
 
 class InversePredicateFrequencyWeigher: public GraphWeigher {
 public:
-	virtual TPt<TNodeEdgeNet<TStr, WeightedPredicate> > weigh(TPt<TNodeEdgeNet<TStr, TStr> >) const;
+	virtual void weigh(std::shared_ptr<QuickGraph::LabeledGraph>) const;
 };
 
 class PredicateFrequencyWeigher: public GraphWeigher {
 public:
-	virtual TPt<TNodeEdgeNet<TStr, WeightedPredicate> > weigh(TPt<TNodeEdgeNet<TStr, TStr> >) const;
+	virtual void weigh(std::shared_ptr<QuickGraph::LabeledGraph>) const;
 };
 
 class ObjectFrequencyWeigher: public GraphWeigher {
 public:
-	virtual TPt<TNodeEdgeNet<TStr, WeightedPredicate> > weigh(TPt<TNodeEdgeNet<TStr, TStr> >) const;
+	virtual void weigh(std::shared_ptr<QuickGraph::LabeledGraph>) const;
 };
 
 class InverseObjectFrequencyWeigher: public GraphWeigher {
 public:
-	virtual TPt<TNodeEdgeNet<TStr, WeightedPredicate> > weigh(TPt<TNodeEdgeNet<TStr, TStr> >) const;
+	virtual void weigh(std::shared_ptr<QuickGraph::LabeledGraph>) const;
 };
 
 class PredicateObjectFrequencyWeigher: public GraphWeigher {
 public:
-	virtual TPt<TNodeEdgeNet<TStr, WeightedPredicate> > weigh(TPt<TNodeEdgeNet<TStr, TStr> >) const;
+	virtual void weigh(std::shared_ptr<QuickGraph::LabeledGraph>) const;
 };
 
 class InversePredicateObjectFrequencyWeigher: public GraphWeigher {
 public:
-	virtual TPt<TNodeEdgeNet<TStr, WeightedPredicate> > weigh(TPt<TNodeEdgeNet<TStr, TStr> >) const;
+	virtual void weigh(std::shared_ptr<QuickGraph::LabeledGraph>) const;
 };
 
 class InverseObjectFrequencyWeigherSplitDown: public GraphWeigher {
 public:
-	virtual TPt<TNodeEdgeNet<TStr, WeightedPredicate> > weigh(TPt<TNodeEdgeNet<TStr, TStr> >) const;
+	virtual void weigh(std::shared_ptr<QuickGraph::LabeledGraph>) const;
 };
 
 /**
@@ -75,18 +76,18 @@ public:
  *
  */
 class PushDownWeigher: public GraphWeigher {
-	const THash<TStr, TFlt> nodeWeights;
+	const std::unordered_map<std::string, double> nodeWeights;
 	const double defaultWeight;
 
 public:
 	/**
 	 * If defaultweight is set to -1, it indicates that all weights MUST be in the nodeWeights. If not, the program will be terminated.
 	 */
-	PushDownWeigher(const THash<TStr, TFlt> nodeWeights, const double defaultWeight) :
+	PushDownWeigher(const std::unordered_map<std::string, double> & nodeWeights, const double defaultWeight) :
 			nodeWeights(nodeWeights), defaultWeight(defaultWeight) {
 	}
 
-	virtual TPt<TNodeEdgeNet<TStr, WeightedPredicate> > weigh(TPt<TNodeEdgeNet<TStr, TStr> >) const;
+	virtual void weigh(std::shared_ptr<QuickGraph::LabeledGraph>) const;
 };
 
 /**
@@ -100,18 +101,18 @@ public:
  *
  */
 class SplitDownWeigher: public GraphWeigher {
-	const THash<TStr, TFlt> nodeWeights;
+	const std::unordered_map<std::string, double> nodeWeights;
 	const double defaultWeight;
 
 public:
 	/**
 	 * If defaultweight is set to -1, it indicates that all weights MUST be in the nodeWeights. If not, the program will be terminated.
 	 */
-	SplitDownWeigher(const THash<TStr, TFlt> nodeWeights, const double defaultWeight) :
+	SplitDownWeigher(const std::unordered_map<std::string, double> & nodeWeights, const double defaultWeight) :
 			nodeWeights(nodeWeights), defaultWeight(defaultWeight) {
 	}
 
-	virtual TPt<TNodeEdgeNet<TStr, WeightedPredicate> > weigh(TPt<TNodeEdgeNet<TStr, TStr> >) const;
+	virtual void weigh(std::shared_ptr<QuickGraph::LabeledGraph>) const;
 };
 
-#endif /* GRAPHWEIGHER_H_ */
+#endif /* GRAPHWEIGHER_HA_ */

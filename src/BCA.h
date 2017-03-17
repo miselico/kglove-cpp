@@ -5,20 +5,22 @@
  *      Author: cochez
  */
 
-#ifndef BCA_H_
-#define BCA_H_
+#ifndef BCA_HA_
+#define BCA_HA_
 
-#include "Snap.h"
-
-#include "WeightedPredicate.h"
 #include <string>
+#include <unordered_map>
+#include <memory>
+#include "graph/LabeledGraph.h"
+#include <utility>
+#include "boost/flyweight.hpp"
 
-using namespace std;
+typedef boost::flyweight<std::string> flyString;
 
 //sparse vector representing the approx pagerank
-class BCV: public THash<TInt, TFlt> {
+class BCV: public std::unordered_map<int, double> {
 public:
-	string toString(const TPt<TNodeEdgeNet<TStr, WeightedPredicate> > network);
+	std::string toString(const std::shared_ptr<QuickGraph::LabeledGraph> network);
 	void fixPaint(int ID, double amount);
 	void removeEntry(int ID);
 	//This function normalizes the vector such that pageranks add up to 1 IN PLACE
@@ -26,23 +28,23 @@ public:
 	void add(BCV & other);
 };
 
-BCV computeBCA(TPt<TNodeEdgeNet<TStr, WeightedPredicate> > network, int b_ID, double alpha, double eps);
 
-BCV computeBCACached(TPt<TNodeEdgeNet<TStr, WeightedPredicate> > network, int b_ID, double alpha, double eps, THash<TInt, BCV> & bcvCache);
+BCV computeBCA(std::shared_ptr<QuickGraph::LabeledGraph> graph, int b_ID, double alpha, double eps);
 
-BCV computeBCAIncludingEdges(TPt<TNodeEdgeNet<TStr, WeightedPredicate> > network, int b_ID, double alpha, double eps, THash<TStr, int> predIDs);
+BCV computeBCACached(std::shared_ptr<QuickGraph::LabeledGraph> network, int b_ID, double alpha, double eps, std::unordered_map<int, BCV> & bcvCache);
 
-BCV computeBCAIncludingEdgesCached(TPt<TNodeEdgeNet<TStr, WeightedPredicate> > network, int b_ID, double alpha, double eps, THash<TStr, int> predIDs, THash<TInt, BCV> & bcvCache);
+BCV computeBCAIncludingEdges(std::shared_ptr<QuickGraph::LabeledGraph> network, int b_ID, double alpha, double eps, const  std::unordered_map<flyString, int> & predIDs);
 
+BCV computeBCAIncludingEdgesCached(std::shared_ptr<QuickGraph::LabeledGraph> network, int b_ID, double alpha, double eps, const std::unordered_map<flyString, int> & predIDs, std::unordered_map<int, BCV> & bcvCache);
 
-class PBCV: public THash<TPair<TInt, TInt>, TFlt> {
-public:
-	string toString(const TPt<TNodeEdgeNet<TStr, WeightedPredicate> > network);
-	void fixPaint(TPair<TInt, TInt> pred_obj_pair, double amount);
+//class PBCV : public std::unordered_map< std::pair<int, int> , double>{
+//public:
+//	std::string toString(const std::shared_ptr<QuickGraph::LabeledGraph> network);
+//	void fixPaint(std::pair<int, int>  pred_obj_pair, double amount);
+//};
+//
+//
+////PBCA = Pushed Bookmar cocloring algorithm
+//PBCV computePBCA(std::shared_ptr<QuickGraph::LabeledGraph> network, int b_ID, double alpha, double eps);
 
-};
-
-//PBCA = Pushed Bookmar cocloring algorithm
-PBCV computePBCA(TPt<TNodeEdgeNet<TStr, WeightedPredicate> > network, int b_ID, double alpha, double eps);
-
-#endif /* BCA_H_ */
+#endif /* BCA_HA_ */

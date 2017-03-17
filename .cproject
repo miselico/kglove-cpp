@@ -21,14 +21,10 @@
 							<builder buildPath="${workspace_loc:/RDFConverter}/Debug" id="cdt.managedbuild.target.gnu.builder.exe.debug.1832205196" keepEnvironmentInBuildfile="false" managedBuildOn="true" name="Gnu Make Builder" superClass="cdt.managedbuild.target.gnu.builder.exe.debug"/>
 							<tool id="cdt.managedbuild.tool.gnu.archiver.base.2004854947" name="GCC Archiver" superClass="cdt.managedbuild.tool.gnu.archiver.base"/>
 							<tool command="g++" commandLinePattern="${COMMAND} ${FLAGS} ${OUTPUT_FLAG} ${OUTPUT_PREFIX}${OUTPUT} ${INPUTS}" id="cdt.managedbuild.tool.gnu.cpp.compiler.exe.debug.1905361448" name="GCC C++ Compiler" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.exe.debug">
-								<option id="gnu.cpp.compiler.exe.debug.option.optimization.level.1030871823" name="Optimization Level" superClass="gnu.cpp.compiler.exe.debug.option.optimization.level" useByScannerDiscovery="false" value="gnu.cpp.compiler.optimization.level.most" valueType="enumerated"/>
+								<option id="gnu.cpp.compiler.exe.debug.option.optimization.level.1030871823" name="Optimization Level" superClass="gnu.cpp.compiler.exe.debug.option.optimization.level" useByScannerDiscovery="false" value="gnu.cpp.compiler.optimization.level.none" valueType="enumerated"/>
 								<option id="gnu.cpp.compiler.exe.debug.option.debugging.level.1950672249" name="Debug Level" superClass="gnu.cpp.compiler.exe.debug.option.debugging.level" useByScannerDiscovery="false" value="gnu.cpp.compiler.debugging.level.max" valueType="enumerated"/>
 								<option id="gnu.cpp.compiler.option.include.paths.177328166" name="Include paths (-I)" superClass="gnu.cpp.compiler.option.include.paths" useByScannerDiscovery="false" valueType="includePath">
-									<listOptionValue builtIn="false" value="/home/cochez/Documents/RDF2Vec/workspaceC++/Snap-3.0/snap-core"/>
 									<listOptionValue builtIn="false" value="/home/cochez/Documents/RDF2Vec/workspaceC++/boost_1_63_0/"/>
-									<listOptionValue builtIn="false" value="/home/cochez/Documents/RDF2Vec/workspaceC++/Snap-3.0/snap-adv"/>
-									<listOptionValue builtIn="false" value="/home/cochez/Documents/RDF2Vec/workspaceC++/Snap-3.0/glib-core"/>
-									<listOptionValue builtIn="false" value="/home/cochez/Documents/RDF2Vec/workspaceC++/Snap-3.0/snap-exp"/>
 								</option>
 								<option id="gnu.cpp.compiler.option.dialect.std.147456681" name="Language standard" superClass="gnu.cpp.compiler.option.dialect.std" useByScannerDiscovery="true" value="gnu.cpp.compiler.dialect.c++1y" valueType="enumerated"/>
 								<option id="gnu.cpp.compiler.option.other.other.252422633" name="Other flags" superClass="gnu.cpp.compiler.option.other.other" useByScannerDiscovery="false" value="-fopenmp  -c -fmessage-length=0 -DNDEBUG" valueType="string"/>
@@ -43,14 +39,12 @@
 							</tool>
 							<tool id="cdt.managedbuild.tool.gnu.c.linker.exe.debug.576621454" name="GCC C Linker" superClass="cdt.managedbuild.tool.gnu.c.linker.exe.debug"/>
 							<tool id="cdt.managedbuild.tool.gnu.cpp.linker.exe.debug.2088953823" name="GCC C++ Linker" superClass="cdt.managedbuild.tool.gnu.cpp.linker.exe.debug">
-								<option id="gnu.cpp.link.option.userobjs.243616308" name="Other objects" superClass="gnu.cpp.link.option.userobjs" useByScannerDiscovery="false" valueType="userObjs">
-									<listOptionValue builtIn="false" value="/home/cochez/Documents/RDF2Vec/workspaceC++/Snap-3.0/snap-core/Snap.o"/>
-								</option>
+								<option id="gnu.cpp.link.option.userobjs.243616308" name="Other objects" superClass="gnu.cpp.link.option.userobjs" useByScannerDiscovery="false"/>
 								<option id="gnu.cpp.link.option.libs.986833963" name="Libraries (-l)" superClass="gnu.cpp.link.option.libs" useByScannerDiscovery="false" valueType="libs">
 									<listOptionValue builtIn="false" value="rt"/>
 									<listOptionValue builtIn="false" value="m"/>
 								</option>
-								<option id="gnu.cpp.link.option.flags.1702764414" name="Linker flags" superClass="gnu.cpp.link.option.flags" useByScannerDiscovery="false" value="-fopenmp -static" valueType="string"/>
+								<option id="gnu.cpp.link.option.flags.1702764414" name="Linker flags" superClass="gnu.cpp.link.option.flags" useByScannerDiscovery="false" value="-fopenmp" valueType="string"/>
 								<option id="gnu.cpp.link.option.other.618791523" name="Other options (-Xlinker [option])" superClass="gnu.cpp.link.option.other" useByScannerDiscovery="false"/>
 								<inputType id="cdt.managedbuild.tool.gnu.cpp.linker.input.329358842" superClass="cdt.managedbuild.tool.gnu.cpp.linker.input">
 									<additionalInput kind="additionalinputdependency" paths="$(USER_OBJS)"/>

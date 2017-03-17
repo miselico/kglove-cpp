@@ -9,19 +9,16 @@
 #define NTRIPLEPARSER_H_
 
 #include <iostream>
+#include <utility>
+#include <unordered_map>
 
-#include "Snap.h" //this is a bit overkill, but includes everything needed for glib
+#include "graph/LabeledGraph.h"
 
-namespace n3parser{
+namespace n3parser {
 
-TPair<TPt<TNodeEdgeNet<TStr, TStr> >, THash<TStr, int> > buildRDFGraph(TStr filename);
+std::pair<std::shared_ptr<QuickGraph::LabeledGraph>, std::unordered_map<std::string, int> > buildRDFGraph(const std::string & filename);
 
-TPair<TPt<TNodeEdgeNet<TStr, TStr> >, THash<TStr, int> > buildRDFGraphIgnoreLiterals(TStr filename);
-
-
-//Triple parsetripleLine(TStr line);
-
-TStr resourceExpander(TStr string);
+std::pair<std::shared_ptr<QuickGraph::LabeledGraph>, std::unordered_map<std::string, int> > buildRDFGraphIgnoreLiterals(const std::string & filename);
 
 }
 

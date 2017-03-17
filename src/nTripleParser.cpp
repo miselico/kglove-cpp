@@ -5,129 +5,134 @@
  *      Author: cochez
  */
 
+#include <assert.h>
+#include <utility>
+#include <boost/algorithm/string.hpp>
+#include <fstream>
+#include <memory>
+
 #include "nTripleParser.h"
 #include "PrintTime.h"
 
 using namespace std;
+using namespace boost;
 
 namespace {
 
 bool DEBUGMODE = false;
 
-class Triple: public TTriple<TStr, TStr, TStr> {
+class Triple: public std::tuple<const string, const string, const string> {
 public:
-	Triple(TStr S, TStr P, TStr O) :
-			TTriple(S, P, O) {
+	Triple(const string& S, const string& P, const string& O) :
+			std::tuple<const string, const string, const string>(S, P, O) {
 	}
-
-	TStr S() {
-		return this->Val1;
+	const string S() {
+		return std::get<0>(*this);
 	}
-	TStr P() {
-		return this->Val2;
+	const string P() {
+		return std::get<1>(*this);
 	}
-	TStr O() {
-		return this->Val3;
+	const string O() {
+		return std::get<2>(*this);
 	}
-
 };
 
 // A blank node is at the start of this line, parses it of and returns the remaining of the line.
-TPair<TStr, TStr> parseBlankNodeOf(TStr line) {
-	int firstUnderScoreColon = line.SearchStr("_:", 0);
-	if (firstUnderScoreColon == -1) {
-		cerr << "_: expected not found " << line.CStr() << endl;
-	}
-	TStr atBNStart = line.GetSubStr(firstUnderScoreColon);
+pair<string, string> parseBlankNodeOf(const string & line) {
+	int firstUnderScoreColon = line.find("_:", 0);
+
+	assert(firstUnderScoreColon != string::npos && "_: expected not found ");
+	string atBNStart = line.substr(firstUnderScoreColon);
 	//We assume it is ended by space.
 
-	TStr blankNode = line.LeftOf(' ');
-	TStr rest = line.RightOf(' ');
-	return TPair<TStr, TStr>(blankNode, rest);
+	int cutpoint = atBNStart.find(' ');
+	string blankNode = atBNStart.substr(0, cutpoint);
+	string rest = atBNStart.substr(cutpoint + 1);
+	return pair<string, string>(blankNode, rest);
 }
 
-TPair<TStr, TStr> parseSubjectOf(TStr line) {
-	int firstUnderScoreColon = line.SearchStr("_:", 0);
-	int firstAngular = line.SearchCh('<', 0);
+pair<string, string> parseSubjectOf(const string & startline) {
+	int firstUnderScoreColon = startline.find("_:", 0);
+	int firstAngular = startline.find('<', 0);
 
 	if (firstUnderScoreColon != -1 && firstUnderScoreColon < firstAngular) {
-		return parseBlankNodeOf(line);
+		return parseBlankNodeOf(startline);
 	}
 	//otherwise it is a resource
-	line = line.RightOf('<');
-	TStr S = "<" + line.LeftOf('>') + ">";
-	return TPair<TStr, TStr>(S, line.RightOf('>'));
+	string line = startline.substr(startline.find('<'));
+	int cutpoint = line.find('>');
+	string S = line.substr(0, cutpoint + 1);
+	return pair<string, string>(S, line.substr(cutpoint + 1));
 }
 
-TStr parseObject(TStr line) {
+string parseObject(const string & startline) {
 
 	//the line now either contains one more resource or a literal
 	//Note, there could be a '<' in the string and according to production of N3 also a " in resource
 
-	while (line[0] == ' ') {
-		line = line.GetSubStr(1);
-	}
+	int a = startline.find_first_not_of(' ');
+	string line = startline.substr(a);
 
-	if (line.GetCh(0) == '_') {
-		return parseBlankNodeOf(line).Val1;
-	} else if (line.GetCh(0) == '<') {
-		line = line.RightOf('<');
-		return "<" + line.LeftOf('>') + ">";
-	} else if (line.GetCh(0) == '"') {
+	if (line[0] == '_') {
+		return parseBlankNodeOf(line).first;
+	} else if (line[0] == '<') {
+		line = line.substr(0, line.rfind('>') + 1);
+		return line;
+	} else if (line[0] == '"') {
 		//literal
-		if (DEBUGMODE && ((line.SearchStr("^^", 0) != -1) || (line.SearchStr("@", 0) != -1))) {
-			cerr << "TODO language tags and datatypes are not supported properly, assumed as part of the literal : " << line.CStr() << endl;
+		if (DEBUGMODE && ((line.find("^^") != string::npos) || (line.find("@") != string::npos))) {
+			cerr << "TODO language tags and datatypes are not supported properly, assumed as part of the literal : " << line.c_str() << endl;
 		}
 		//cut of final dot and spaces
-		while (line.GetCh(line.Len() - 1) == ' ' || line.GetCh(line.Len() - 1) == '.') {
-			line = line.GetSubStr(0, line.Len() - 2);
+		while (line[line.size() - 1] == ' ' || line[line.size() - 1] == '.') {
+			line = line.substr(0, line.size() - 2);
 		}
 		return line;
 	} else {
-		cerr << " Parsing error, invalid object " << line.CStr() << endl;
+		cerr << " Parsing error, invalid object " << line.c_str() << endl;
 		exit(1);
 	}
 
 }
 
-Triple parsetripleLine(TStr line) {
+Triple parsetripleLine(const string & startline) {
 	//line = <http://www.wikidata.org/ontology#gcPrecision> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#DatatypeProperty> .
 	//line = _:node1ap4j3o3kx4 <http://example.com> <http://example.com#hasname> "Test"
 
-	TPair<TStr, TStr> S_rest = parseSubjectOf(line);
+	pair<string, string> S_rest = parseSubjectOf(startline);
 
-	TStr S = S_rest.Val1;
+	string S = S_rest.first;
 
 	//predicate is easy
-	line = S_rest.Val2.RightOf('<');
-	TStr P = line.LeftOf('>');
-	P = "<" + P + ">";
-	line = line.RightOf('>');
+	string line = S_rest.second.substr(S_rest.second.find('<'));
+	string P = line.substr(0, line.find('>') + 1);
+	line = line.substr(line.find('>') + 1);
 
-	TStr O = parseObject(line);
+	string O = parseObject(line);
 
 	return Triple(S, P, O);
 }
 
-TPair<TPt<TNodeEdgeNet<TStr, TStr> >, THash<TStr, int> > buildRDFGraphInternal(TStr filename, bool removeLiteral) {
+pair<std::shared_ptr<QuickGraph::LabeledGraph>, unordered_map<string, int> > buildRDFGraphInternal(const string & filename, bool removeLiteral) {
 
 //The graph
-	TPt<TNodeEdgeNet<TStr, TStr> > Net = TNodeEdgeNet<TStr, TStr>::New();
+	std::shared_ptr<QuickGraph::LabeledGraph> graph(new QuickGraph::LabeledGraph);
 
+	vector<QuickGraph::Node> & nodes = graph->nodes;
 //temporary keep track of all the nodes
-	THash<TStr, int> addedNodes;
+	std::unordered_map<string, int> addedNodes( { });
 
-	PSIn FInPt = TFIn::New(filename);
-	TStr line;
+	ifstream infile(filename);
+
+	string line;
 	int count = 0;
-//To reuse the strings in the node/edge labels
-	THashSet<TStr> stringpool;
 
-	while (FInPt->GetNextLn(line)) {
-		if (line.IsWs()) {
+	//the flyweights will take care of multiple edges having the smae label.
+	while (std::getline(infile, line)) {
+		if (trim_copy(line).empty()) { //skip whitespace
 			continue;
 		}
-		if (line.SearchCh('#', 0) == 0) {
+		if (line.find('#', 0) == 0) {
 			//comment
 			continue;
 		}
@@ -135,72 +140,75 @@ TPair<TPt<TNodeEdgeNet<TStr, TStr> >, THash<TStr, int> > buildRDFGraphInternal(T
 		if (count % 1000000 == 0) {
 			cout << currentTime() << "Read " << count << " triples" << endl;
 		}
-		Triple valuesnotPooled = parsetripleLine(line);
-		//This saves about 10% memory on a small test. Perhaps more on a larger one.
-		Triple values(valuesnotPooled.S(), stringpool.GetKey(stringpool.AddKey(valuesnotPooled.P())), valuesnotPooled.O());
-		if (removeLiteral && values.O().GetCh(0) == '"') {
+		Triple values = parsetripleLine(line);
+		if (removeLiteral && values.O()[0] == '"') {
 			//do not add this literal
 			continue;
 		}
 
-		int subjectIndex = 0;
 		bool hasEdgePossibility = true;
-		if (addedNodes.IsKeyGetDat(values.S(), subjectIndex)) {
-			//nothing, subjectIndex now contains the node ID
-		} else {
-			//add new Node, save index
-			subjectIndex = Net->AddNode(-1, values.S());
-			addedNodes.AddDat(values.S(), subjectIndex);
-			hasEdgePossibility = false;
+
+		int subjectIndex;
+		{ //scoping for name clashes
+			string subject = values.S();
+			auto resS = addedNodes.find(subject);
+			if (resS == addedNodes.end()) {
+				subjectIndex = nodes.size();
+				nodes.push_back(subject);
+				addedNodes[subject] = subjectIndex;
+				hasEdgePossibility = false;
+			} else {
+				subjectIndex = resS->second;
+			}
+		}
+		int objectIndex;
+		{ //scoping for name clashes
+			string object = values.O();
+			auto resO = addedNodes.find(object);
+
+			if (resO == addedNodes.end()) {
+				objectIndex = nodes.size();
+				nodes.emplace_back(object);
+				addedNodes[object] = objectIndex;
+				hasEdgePossibility = false;
+			} else {
+				objectIndex = resO->second;
+			}
 		}
 
-		int objectIndex = 0;
-		if (addedNodes.IsKeyGetDat(values.O(), objectIndex)) {
-			//nothing, objectIndex now contains the node ID
-		} else {
-			//add new Node, save index
-			objectIndex = Net->AddNode(-1, values.O());
-			addedNodes.AddDat(values.O(), objectIndex);
-			hasEdgePossibility = false;
-		}
-		bool hasEdge = false;
 		if (hasEdgePossibility) {
-			TNodeEdgeNet<TStr, TStr>::TNodeI ni = Net->GetNI(subjectIndex);
-			for (int i = 0; i < ni.GetOutDeg(); ++i) {
-				int otherObjectindex = ni.GetOutNId(i);
-				if (otherObjectindex == objectIndex) {
-					TStr pred = ni.GetOutEDat(i);
-					if (pred == values.P()) {
+			bool hasEdge = false;
+			vector<QuickGraph::Edge> & edges = nodes[subjectIndex].edges;
+			for (vector<QuickGraph::Edge>::iterator edge = edges.begin(); edge < edges.end(); edge++) {
+				if (edge->target - nodes.begin() == objectIndex) {
+					if (edge->label == values.P()) {
 						hasEdge = true;
 						break;
 					}
 				}
 			}
-		}
-		if (!hasEdge) {
 
-			//add edge
-			Net->AddEdge(subjectIndex, objectIndex, -1, values.P());
+			if (!hasEdge) {
+				edges.emplace_back(values.P(), 0.0, nodes.begin() + objectIndex);
+			}
 		}
 
 	}
 
-	stringpool.Clr(true, -1);
+	infile.close();
 
-	addedNodes.Pack();
-
-	return TPair<TPt<TNodeEdgeNet<TStr, TStr> >, THash<TStr, int> >(Net, addedNodes);
+	return pair<std::shared_ptr<QuickGraph::LabeledGraph>, unordered_map<string, int> >(graph, addedNodes);
 }
 
 }
 
 namespace n3parser {
 
-TPair<TPt<TNodeEdgeNet<TStr, TStr> >, THash<TStr, int> > buildRDFGraph(TStr filename) {
+pair<std::shared_ptr<QuickGraph::LabeledGraph>, unordered_map<string, int> > buildRDFGraph(const string & filename) {
 	return buildRDFGraphInternal(filename, false);
 }
 
-TPair<TPt<TNodeEdgeNet<TStr, TStr> >, THash<TStr, int> > buildRDFGraphIgnoreLiterals(TStr filename) {
+pair<std::shared_ptr<QuickGraph::LabeledGraph>, unordered_map<string, int> > buildRDFGraphIgnoreLiterals(const string & filename) {
 	return buildRDFGraphInternal(filename, true);
 
 }
