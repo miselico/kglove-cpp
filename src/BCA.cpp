@@ -48,7 +48,6 @@ void BCV::removeEntry(unsigned int ID) {
 
 void BCV::normalizeInPlace() {
 	double totalSum = 0.0;
-	std::unordered_map<unsigned int, double>::iterator a = this->begin();
 
 	for (unordered_map<unsigned int, double>::iterator iter = this->begin(); iter != this->end(); iter++) {
 		totalSum += iter->second;
@@ -60,8 +59,8 @@ void BCV::normalizeInPlace() {
 	}
 }
 
-void BCV::add(BCV & other) {
-	for (unordered_map<unsigned int, double>::iterator iter = other.begin(); iter != other.end(); iter++) {
+void BCV::add(const BCV & other) {
+	for (unordered_map<unsigned int, double>::const_iterator iter = other.cbegin(); iter != other.cend(); iter++) {
 		unsigned int ID = iter->first;
 		double addition = iter->second;
 		BCV::iterator ownValue = this->find(ID);
@@ -71,6 +70,20 @@ void BCV::add(BCV & other) {
 			this->emplace(ID, ownValue->second + addition);
 		}
 
+	}
+}
+
+
+void BCV::add(const CompactBCV & other) {
+	for (vector<pair<unsigned int, double>>::const_iterator iter = other.values.cbegin(); iter != other.values.cend(); iter++) {
+		unsigned int ID = iter->first;
+		double addition = iter->second;
+		BCV::iterator ownValue = this->find(ID);
+		if (ownValue == this->end()) {
+			this->emplace(ID, addition);
+		} else {
+			this->emplace(ID, ownValue->second + addition);
+		}
 	}
 }
 
@@ -104,7 +117,7 @@ public:
 /**
  * Compute the bookmarking coloring algorithm (≃ personalized page rank) between node b_ID and all other nodes in the graph. Using teleportation parameter alpha and cut-off value eps.
  */
-BCV computeBCA(std::shared_ptr<QuickGraph::LabeledGraph> network, int b_ID, double alpha, double eps) {
+BCV computeBCA(std::shared_ptr<QuickGraph::LabeledGraph> network, unsigned int b_ID, double alpha, double eps) {
 	BCAQueue Q;
 	BCV p;
 	Q.addPaintTo(b_ID, 1.0);
@@ -137,7 +150,7 @@ BCV computeBCA(std::shared_ptr<QuickGraph::LabeledGraph> network, int b_ID, doub
  * The first element of the pair is the normal BCV, the second one the pagerank for the predicates
  *
  */
-BCV computeBCAIncludingEdges(std::shared_ptr<QuickGraph::LabeledGraph> network, int b_ID, double alpha, double eps, const std::unordered_map<flyString, unsigned int> & predIDs) {
+BCV computeBCAIncludingEdges(std::shared_ptr<QuickGraph::LabeledGraph> network, unsigned int b_ID, double alpha, double eps, const std::unordered_map<flyString, unsigned int> & predIDs) {
 	BCAQueue Q;
 	BCV p;
 	Q.addPaintTo(b_ID, 1.0);
@@ -168,7 +181,7 @@ BCV computeBCAIncludingEdges(std::shared_ptr<QuickGraph::LabeledGraph> network, 
 	return p;
 }
 
-BCV computeBCACached(std::shared_ptr<QuickGraph::LabeledGraph> network, int b_ID, double alpha, double eps, std::unordered_map<unsigned int, BCV> & bcvCache) {
+BCV computeBCACached(std::shared_ptr<QuickGraph::LabeledGraph> network, unsigned int b_ID, double alpha, double eps, std::unordered_map<unsigned int, BCV> & bcvCache) {
 	BCAQueue Q;
 	BCV p;
 	Q.addPaintTo(b_ID, 1.0);
@@ -208,22 +221,23 @@ BCV computeBCACached(std::shared_ptr<QuickGraph::LabeledGraph> network, int b_ID
 	return p;
 }
 
-BCV computeBCAIncludingEdgesCached(std::shared_ptr<QuickGraph::LabeledGraph> network, int b_ID, double alpha, double eps, const std::unordered_map<flyString, unsigned int> & predIDs,
-		std::unordered_map<unsigned int, BCV> & bcvCache) {
+shared_ptr<CompactBCV> computeBCAIncludingEdgesCached(std::shared_ptr<QuickGraph::LabeledGraph> network, unsigned int b_ID, double alpha, double eps,
+		const std::unordered_map<flyString, unsigned int> & predIDs, vector<std::shared_ptr<CompactBCV>> & bcvCache) {
 	BCAQueue Q;
 	BCV p;
 	Q.addPaintTo(b_ID, 1.0);
 
 	while (!Q.empty()) {
-		pair<int, double> element = Q.pop();
-		int i = element.first;
+		pair<unsigned int, double> element = Q.pop();
+		unsigned int i = element.first;
 		double w = element.second;
 
-		std::unordered_map<unsigned int, BCV>::iterator precomputedI = bcvCache.find(i);
-		if (precomputedI != bcvCache.end()) {
-			BCV & precomputed = precomputedI->second;
+		std::shared_ptr<CompactBCV> cached = bcvCache[i];
+
+		if (cached) {
+			CompactBCV * precomputed = cached.get();
 			//TODO double check this:
-			for (unordered_map<unsigned int, double>::iterator iter = precomputed.begin(); iter != precomputed.end(); iter++) {
+			for (vector<pair<unsigned int, double>>::iterator iter = precomputed->values.begin(); iter != precomputed->values.end(); iter++) {
 				double scaled = iter->second * w;
 				//Here the algorithm might have a slight difference with the original version.
 				//The problem is that we cannot know the threshold directly because of the weights in the graph, this seems to be an okay estimation
@@ -252,8 +266,8 @@ BCV computeBCAIncludingEdgesCached(std::shared_ptr<QuickGraph::LabeledGraph> net
 			}
 		}
 	}
-	bcvCache[b_ID] = p;
-	return p;
+	bcvCache[b_ID] = shared_ptr<CompactBCV>(new CompactBCV(p));//   [b_ID] = p;
+	return bcvCache[b_ID];
 }
 
 //From here on implementation of pushed Bookmark Coloring Algorithm

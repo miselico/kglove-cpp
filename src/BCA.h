@@ -17,13 +17,15 @@
 
 typedef boost::flyweight<std::string> flyString;
 
+class CompactBCV;
+
 //sparse vector representing the approx pagerank
 class BCV: public std::unordered_map<unsigned int, double> {
 //	BCV(BCV &other){
 //
 //	}
 public:
-	BCV(){
+	BCV() {
 
 	}
 	std::string toString(const std::shared_ptr<QuickGraph::LabeledGraph> network);
@@ -31,17 +33,31 @@ public:
 	void removeEntry(unsigned int ID);
 	//This function normalizes the vector such that pageranks add up to 1 IN PLACE
 	void normalizeInPlace();
-	void add(BCV & other);
+	void add(const BCV & other);
+	void add(const CompactBCV & other);
 };
 
+class CompactBCV {
+public:
+	std::vector<std::pair<unsigned int, double>> values;
 
-BCV computeBCA(std::shared_ptr<QuickGraph::LabeledGraph> graph, int b_ID, double alpha, double eps);
+	CompactBCV(const BCV & bcv) {
+		for (std::unordered_map<unsigned int, double>::const_iterator iter = bcv.cbegin(); iter != bcv.cend(); iter++) {
+			values.emplace_back(iter->first, iter->second);
+		}
+		this->values.shrink_to_fit();
+	}
 
-BCV computeBCACached(std::shared_ptr<QuickGraph::LabeledGraph> network, int b_ID, double alpha, double eps, std::unordered_map<unsigned int, BCV> & bcvCache);
+};
 
-BCV computeBCAIncludingEdges(std::shared_ptr<QuickGraph::LabeledGraph> network, int b_ID, double alpha, double eps, const  std::unordered_map<flyString,unsigned int> & predIDs);
+BCV computeBCA(std::shared_ptr<QuickGraph::LabeledGraph> graph, unsigned int b_ID, double alpha, double eps);
 
-BCV computeBCAIncludingEdgesCached(std::shared_ptr<QuickGraph::LabeledGraph> network, int b_ID, double alpha, double eps, const std::unordered_map<flyString,unsigned int> & predIDs, std::unordered_map<unsigned int, BCV> & bcvCache);
+BCV computeBCACached(std::shared_ptr<QuickGraph::LabeledGraph> network, unsigned int b_ID, double alpha, double eps, std::unordered_map<unsigned int, BCV> & bcvCache);
+
+BCV computeBCAIncludingEdges(std::shared_ptr<QuickGraph::LabeledGraph> network, unsigned int b_ID, double alpha, double eps, const std::unordered_map<flyString, unsigned int> & predIDs);
+
+std::shared_ptr<CompactBCV> computeBCAIncludingEdgesCached(std::shared_ptr<QuickGraph::LabeledGraph> network, unsigned int b_ID, double alpha, double eps,
+		const std::unordered_map<flyString, unsigned int> & predIDs, std::vector<std::shared_ptr<CompactBCV>> & bcvCache);
 
 //class PBCV : public std::unordered_map< std::pair<int, int> , double>{
 //public:
