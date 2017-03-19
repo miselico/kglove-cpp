@@ -5,33 +5,32 @@
  *      Author: cochez
  */
 
-//#include "Snap.h"
 //#include "RandomWalkExperiments.h"
-//#include "RDF2Co_occurence.h"
+#include "RDF2Co_occurence.h"
 #include <iostream>
 
 #include <utility>
 #include <unordered_map>
-#include "nTripleParser.h"
+
 
 using namespace std;
 
-int main(int argc, char **argv) {
-	string filename = "wikidata-simple-statements-10_000000-sample.nt";
-//	string filename = "../../datasets/dbPedia/allData27_30M.nt";
-	std::pair<std::shared_ptr<QuickGraph::LabeledGraph>, std::unordered_map<string, int>> g = n3parser::buildRDFGraph(filename);
-	cout << g.first->nodes.size() << endl;
-}
-
-//int maiRDF2COn(int argc, char **argv) {
-//	try{
-//	RDF2CO::performExperiments();
-//	} catch (char const* str){
-//		cout << str << endl;
-//		throw str;
-//	}
-//	return 0;
+//int main(int argc, char **argv) {
+//	//string filename = "wikidata-simple-statements-10_000000-sample.nt";
+////	string filename = "../../datasets/dbPedia/allData27_30M.nt";
+//	std::pair<std::shared_ptr<QuickGraph::LabeledGraph>, std::unordered_map<string, int>> g = n3parser::buildRDFGraph(filename);
+//	cout << g.first->nodes.size() << endl;
 //}
+
+int main(int argc, char **argv) {
+	try{
+	RDF2CO::performExperiments();
+	} catch (char const* str){
+		cout << str << endl;
+		throw str;
+	}
+	return 0;
+}
 
 //int mainRandomWalk(int argc, char **argv) {
 //

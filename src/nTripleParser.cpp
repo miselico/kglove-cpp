@@ -113,14 +113,17 @@ Triple parsetripleLine(const string & startline) {
 	return Triple(S, P, O);
 }
 
-pair<std::shared_ptr<QuickGraph::LabeledGraph>, unordered_map<string, int> > buildRDFGraphInternal(const string & filename, bool removeLiteral) {
+pair<std::shared_ptr<QuickGraph::LabeledGraph>, unordered_map<string, unsigned int> > buildRDFGraphInternal(const string & filename, bool removeLiteral) {
 
 //The graph
 	std::shared_ptr<QuickGraph::LabeledGraph> graph(new QuickGraph::LabeledGraph);
 
 	vector<QuickGraph::Node> & nodes = graph->nodes;
+
+	nodes.reserve(10000);
+
 //temporary keep track of all the nodes
-	std::unordered_map<string, int> addedNodes( { });
+	std::unordered_map<string, unsigned int> addedNodes;
 
 	ifstream infile(filename);
 
@@ -146,7 +149,8 @@ pair<std::shared_ptr<QuickGraph::LabeledGraph>, unordered_map<string, int> > bui
 			continue;
 		}
 
-		bool hasEdgePossibility = true;
+		//we prune edges defined twice, if either subject or object are new, then it cannot be a double edge.
+		bool twiceDefinedEdgePossible = true;
 
 		int subjectIndex;
 		{ //scoping for name clashes
@@ -156,12 +160,12 @@ pair<std::shared_ptr<QuickGraph::LabeledGraph>, unordered_map<string, int> > bui
 				subjectIndex = nodes.size();
 				nodes.push_back(subject);
 				addedNodes[subject] = subjectIndex;
-				hasEdgePossibility = false;
+				twiceDefinedEdgePossible = false;
 			} else {
 				subjectIndex = resS->second;
 			}
 		}
-		int objectIndex;
+		unsigned int objectIndex;
 		{ //scoping for name clashes
 			string object = values.O();
 			auto resO = addedNodes.find(object);
@@ -170,45 +174,44 @@ pair<std::shared_ptr<QuickGraph::LabeledGraph>, unordered_map<string, int> > bui
 				objectIndex = nodes.size();
 				nodes.emplace_back(object);
 				addedNodes[object] = objectIndex;
-				hasEdgePossibility = false;
+				twiceDefinedEdgePossible = false;
 			} else {
 				objectIndex = resO->second;
 			}
 		}
-
-		if (hasEdgePossibility) {
-			bool hasEdge = false;
-			vector<QuickGraph::Edge> & edges = nodes[subjectIndex].edges;
+		//add ede if not second time it is defined
+		vector<QuickGraph::Edge> & edges = nodes[subjectIndex].edges;
+		bool twiceDefinedEdge = false;
+		if (twiceDefinedEdgePossible) {
 			for (vector<QuickGraph::Edge>::iterator edge = edges.begin(); edge < edges.end(); edge++) {
-				if (edge->target - nodes.begin() == objectIndex) {
+				if (edge->targetIndex == objectIndex) {
 					if (edge->label == values.P()) {
-						hasEdge = true;
+						twiceDefinedEdge = true;
 						break;
 					}
 				}
 			}
-
-			if (!hasEdge) {
-				edges.emplace_back(values.P(), 0.0, nodes.begin() + objectIndex);
-			}
+		}
+		if (!twiceDefinedEdge) {
+			edges.emplace_back(values.P(), 0.0, objectIndex);
 		}
 
 	}
 
 	infile.close();
-
-	return pair<std::shared_ptr<QuickGraph::LabeledGraph>, unordered_map<string, int> >(graph, addedNodes);
+	graph->pack();
+	return pair<std::shared_ptr<QuickGraph::LabeledGraph>, unordered_map<string, unsigned int> >(graph, addedNodes);
 }
 
 }
 
 namespace n3parser {
 
-pair<std::shared_ptr<QuickGraph::LabeledGraph>, unordered_map<string, int> > buildRDFGraph(const string & filename) {
+pair<std::shared_ptr<QuickGraph::LabeledGraph>, unordered_map<string, unsigned int> > buildRDFGraph(const string & filename) {
 	return buildRDFGraphInternal(filename, false);
 }
 
-pair<std::shared_ptr<QuickGraph::LabeledGraph>, unordered_map<string, int> > buildRDFGraphIgnoreLiterals(const string & filename) {
+pair<std::shared_ptr<QuickGraph::LabeledGraph>, unordered_map<string, unsigned int> > buildRDFGraphIgnoreLiterals(const string & filename) {
 	return buildRDFGraphInternal(filename, true);
 
 }

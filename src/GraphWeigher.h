@@ -76,15 +76,14 @@ public:
  *
  */
 class PushDownWeigher: public GraphWeigher {
-	const std::unordered_map<std::string, double> nodeWeights;
-	const double defaultWeight;
+	const std::vector<double> nodeWeights;
 
 public:
 	/**
-	 * If defaultweight is set to -1, it indicates that all weights MUST be in the nodeWeights. If not, the program will be terminated.
+	 * All weights must be in the vector
 	 */
-	PushDownWeigher(const std::unordered_map<std::string, double> & nodeWeights, const double defaultWeight) :
-			nodeWeights(nodeWeights), defaultWeight(defaultWeight) {
+	PushDownWeigher(const std::vector<double> & nodeWeights) :
+			nodeWeights(nodeWeights) {
 	}
 
 	virtual void weigh(std::shared_ptr<QuickGraph::LabeledGraph>) const;
@@ -101,15 +100,14 @@ public:
  *
  */
 class SplitDownWeigher: public GraphWeigher {
-	const std::unordered_map<std::string, double> nodeWeights;
-	const double defaultWeight;
+	const std::vector<double> nodeWeights;
 
 public:
 	/**
-	 * If defaultweight is set to -1, it indicates that all weights MUST be in the nodeWeights. If not, the program will be terminated.
+	 * All weights must be in the vector
 	 */
-	SplitDownWeigher(const std::unordered_map<std::string, double> & nodeWeights, const double defaultWeight) :
-			nodeWeights(nodeWeights), defaultWeight(defaultWeight) {
+	SplitDownWeigher(const std::vector<double> & nodeWeights) :
+			nodeWeights(nodeWeights) {
 	}
 
 	virtual void weigh(std::shared_ptr<QuickGraph::LabeledGraph>) const;

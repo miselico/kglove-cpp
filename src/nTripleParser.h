@@ -16,9 +16,9 @@
 
 namespace n3parser {
 
-std::pair<std::shared_ptr<QuickGraph::LabeledGraph>, std::unordered_map<std::string, int> > buildRDFGraph(const std::string & filename);
+std::pair<std::shared_ptr<QuickGraph::LabeledGraph>, std::unordered_map<std::string, unsigned int> > buildRDFGraph(const std::string & filename);
 
-std::pair<std::shared_ptr<QuickGraph::LabeledGraph>, std::unordered_map<std::string, int> > buildRDFGraphIgnoreLiterals(const std::string & filename);
+std::pair<std::shared_ptr<QuickGraph::LabeledGraph>, std::unordered_map<std::string, unsigned int> > buildRDFGraphIgnoreLiterals(const std::string & filename);
 
 }
 

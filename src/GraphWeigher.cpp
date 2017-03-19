@@ -12,7 +12,7 @@
 #include <string>
 #include <unordered_map>
 #include "graph/LabeledGraph.h"
-
+#include "utils.h"
 using namespace std;
 
 typedef boost::flyweight<std::string> flyString;
@@ -38,199 +38,230 @@ unordered_map<flyString, double> absolute_predicate_freq(std::shared_ptr<QuickGr
 	return absolute_freq;
 }
 
-//counts the absolute frequence of a the objects
-unordered_map<string, double> absolute_object_freq(std::shared_ptr<QuickGraph::LabeledGraph> baseGraph) {
-	unordered_map<string, double> absolute_freq;
-	for (TNodeEdgeNet<string, string>::TEdgeI EI = baseGraph->BegEI(); EI < baseGraph->EndEI(); EI++) {
-		string object = EI.GetDstNDat();
-		double start = 0.0;
-		absolute_freq.IsKeyGetDat(object, start);
-		absolute_freq.AddDat(object, start + 1);
+////counts the absolute frequence of a the objects
+//unordered_map<flyString, double> absolute_object_freq(std::shared_ptr<QuickGraph::LabeledGraph> baseGraph) {
+//	unordered_map<flyString, double> absolute_freq;
+//	std::vector<QuickGraph::Node> & nodes = baseGraph->nodes;
+//	for (auto nodeI = nodes.begin(); nodeI != nodes.end(); nodeI++) {
+//		std::vector<QuickGraph::Edge> & edges = nodeI->edges;
+//		for (auto edgeI = edges.begin(); edgeI != edges.end(); edgeI++) {
+//			flyString object = edgeI->target->label;
+//			auto oldValI = absolute_freq.find(object);
+//			if (oldValI == absolute_freq.end()) {
+//				absolute_freq[object] = 1;
+//			} else {
+//				absolute_freq[object] = oldValI->second + 1;
+//			}
+//		}
+//	}
+//	return absolute_freq;
+//}
+
+//counts the absolute frequence of a the objects - adapted form the above as it seems more reasonable to keep an iterator, but then iteratrs cannot be hashed -> index
+vector<double> absolute_object_freq(std::shared_ptr<QuickGraph::LabeledGraph> baseGraph) {
+	vector<double> absolute_freq;
+	absolute_freq.resize(baseGraph->nodes.size(), 0);
+	std::vector<QuickGraph::Node> & nodes = baseGraph->nodes;
+	for (auto nodeI = nodes.begin(); nodeI != nodes.end(); nodeI++) {
+		std::vector<QuickGraph::Edge> & edges = nodeI->edges;
+		for (auto edgeI = edges.begin(); edgeI != edges.end(); edgeI++) {
+			int objectIndex = edgeI->targetIndex;
+			absolute_freq[objectIndex]++;
+		}
 	}
 	return absolute_freq;
 }
 
-unordered_map<stringPr, double> absolute_predicate_object_freq(std::shared_ptr<QuickGraph::LabeledGraph> baseGraph) {
-	unordered_map<stringPr, double> absolute_freq;
-	for (TNodeEdgeNet<string, string>::TEdgeI EI = baseGraph->BegEI(); EI < baseGraph->EndEI(); EI++) {
-		string pred = EI.GetDat();
-		string obj = EI.GetDstNDat();
-		stringPr PO(pred, obj);
-		double start = 0.0;
-		absolute_freq.IsKeyGetDat(PO, start);
-		absolute_freq.AddDat(PO, start + 1);
+unordered_map<pair<flyString, flyString>, double, pairhash> absolute_predicate_object_freq(std::shared_ptr<QuickGraph::LabeledGraph> baseGraph) {
+	unordered_map<pair<flyString, flyString>, double, pairhash> absolute_freq;
+	std::vector<QuickGraph::Node> & nodes = baseGraph->nodes;
+	for (auto nodeI = nodes.begin(); nodeI != nodes.end(); nodeI++) {
+		std::vector<QuickGraph::Edge> & edges = nodeI->edges;
+		for (auto edgeI = edges.begin(); edgeI != edges.end(); edgeI++) {
+			flyString predicate = edgeI->label;
+			flyString object = nodes[edgeI->targetIndex].label;
+			pair<flyString, flyString> pair(predicate, object);
+			auto oldValI = absolute_freq.find(pair);
+			if (oldValI == absolute_freq.end()) {
+				absolute_freq[pair] = 1;
+			} else {
+				absolute_freq[pair] = oldValI->second + 1;
+			}
+		}
 	}
 	return absolute_freq;
 }
 
 //inverse all freq
-template<class type> unordered_map<type, double> inverse_the_frequency(unordered_map<type, double> & absolute_freq) {
-	unordered_map<type, double> inverse_freq;
-	for (typename unordered_map<type, double>::TIter iter = absolute_freq.BegI(); iter < absolute_freq.EndI(); iter++) {
-		inverse_freq.AddDat(iter.GetKey(), 1.0 / iter.GetDat());
+template<class type, class Hash = std::hash<type>> void inverse_the_frequency_map(unordered_map<type, double, Hash> & absolute_freq) {
+	for (typename unordered_map<type, double, Hash>::iterator iter = absolute_freq.begin(); iter != absolute_freq.end(); iter++) {
+		absolute_freq[iter->first] = 1.0 / iter->second;
 	}
-	return inverse_freq;
+}
+
+//inverse all freq
+void inverse_the_frequency_vec(vector<double> & absolute_freq) {
+	for (typename vector<double>::iterator iter = absolute_freq.begin(); iter != absolute_freq.end(); iter++) {
+		*iter = 1.0 / *iter;
+	}
 }
 
 //normalize all weights in unbalanced (sum weight on outedges == 1)
-void normalize(TPt<TNodeEdgeNet<string, WeightedPredicate> > unbalanced) {
-	for (TNodeEdgeNet<string, WeightedPredicate>::TNodeI NI = unbalanced->BegNI(); NI < unbalanced->EndNI(); NI++) {
-		int node_i_outdeg = NI.GetOutDeg();
+void normalize(std::shared_ptr<QuickGraph::LabeledGraph> unbalanced) {
+
+	for (vector<QuickGraph::Node>::iterator nodeI = unbalanced->nodes.begin(); nodeI != unbalanced->nodes.end(); nodeI++) {
+		//normalize outgoing from this node
 		double totalWeight = 0;
-		for (int outEdge = 0; outEdge < node_i_outdeg; ++outEdge) {
-			totalWeight += NI.GetOutEDat(outEdge).W();
+		std::vector<QuickGraph::Edge> & edges = nodeI->edges;
+		for (vector<QuickGraph::Edge>::const_iterator edgeI = edges.begin(); edgeI != edges.end(); edgeI++) {
+			totalWeight += edgeI->weight;
 		}
 		double totalWeightInverse = 1.0 / totalWeight;
-		for (int outEdge = 0; outEdge < node_i_outdeg; ++outEdge) {
-			WeightedPredicate & wp = NI.GetOutEDat(outEdge);
-			double normalized_weight = wp.W() * totalWeightInverse;
-			wp.Val2 = normalized_weight;
+		for (vector<QuickGraph::Edge>::iterator edgeI = edges.begin(); edgeI != edges.end(); edgeI++) {
+			double normalizedWeight = edgeI->weight * totalWeightInverse;
+			edgeI->weight = normalizedWeight;
 		}
 	}
+
 }
 
+} //and anonymous namespace helpers
+
+void setValueToOne(QuickGraph::LabeledGraph & baseGraph, QuickGraph::Edge & edge) {
+	edge.weight = 1;
 }
 
 void UniformWeigher::weigh(std::shared_ptr<QuickGraph::LabeledGraph> baseGraph) const {
 
-	TPt < TNodeEdgeNet<string, WeightedPredicate> > newNet = newNetCopyNodes(baseGraph);
-	for (TNodeEdgeNet<string, string>::TEdgeI EI = baseGraph->BegEI(); EI < baseGraph->EndEI(); EI++) {
-		string pred = EI.GetDat();
-		WeightedPredicate wpred(pred, 1);
-		newNet->AddEdge(EI.GetSrcNId(), EI.GetDstNId(), EI.GetId(), wpred);
+	baseGraph->forEachEdge(setValueToOne);
+	normalize(baseGraph);
+
+}
+
+namespace {
+class PredicateToWeight {
+	const unordered_map<flyString, double> weights;
+public:
+
+	PredicateToWeight(const unordered_map<flyString, double> & weights) :
+			weights(weights) {
+
 	}
-	normalize (newNet);
-	return newNet;
+	void operator()(QuickGraph::LabeledGraph & baseGraph, QuickGraph::Edge & edge) {
+		double newWeight = this->weights.at(edge.label);
+		edge.weight = newWeight;
+	}
+
+};
 }
 
 void PredicateFrequencyWeigher::weigh(std::shared_ptr<QuickGraph::LabeledGraph> baseGraph) const {
-	TPt < TNodeEdgeNet<string, WeightedPredicate> > newNet = newNetCopyNodes(baseGraph);
-	unordered_map<string, double> absolute_freq = absolute_predicate_freq(baseGraph);
-	for (TNodeEdgeNet<string, string>::TEdgeI EI = baseGraph->BegEI(); EI < baseGraph->EndEI(); EI++) {
-		string pred = EI.GetDat();
-		WeightedPredicate wpred(pred, absolute_freq.GetDat(pred));
-		newNet->AddEdge(EI.GetSrcNId(), EI.GetDstNId(), EI.GetId(), wpred);
-	}
-	normalize (newNet);
-	return newNet;
+
+	unordered_map<flyString, double> absolute_freq = absolute_predicate_freq(baseGraph);
+	baseGraph->forEachEdge(PredicateToWeight(absolute_freq));
+	normalize(baseGraph);
+
 }
 
 void InversePredicateFrequencyWeigher::weigh(std::shared_ptr<QuickGraph::LabeledGraph> baseGraph) const {
-	TPt < TNodeEdgeNet<string, WeightedPredicate> > newNet = newNetCopyNodes(baseGraph);
-	//count freq of each property:
-	unordered_map<string, double> absolute_freq = absolute_predicate_freq(baseGraph);
-	unordered_map<string, double> inverse_freq = inverse_the_frequency(absolute_freq);
-	for (TNodeEdgeNet<string, string>::TEdgeI EI = baseGraph->BegEI(); EI < baseGraph->EndEI(); EI++) {
-		string pred = EI.GetDat();
-		WeightedPredicate wpred(pred, inverse_freq.GetDat(pred));
-		newNet->AddEdge(EI.GetSrcNId(), EI.GetDstNId(), EI.GetId(), wpred);
-	}
-	normalize (newNet);
-	return newNet;
+
+//count freq of each property:
+	unordered_map<flyString, double> absolute_freq = absolute_predicate_freq(baseGraph);
+	inverse_the_frequency_map(absolute_freq);
+	baseGraph->forEachEdge(PredicateToWeight(absolute_freq));
+	normalize(baseGraph);
+
 }
 
 void ObjectFrequencyWeigher::weigh(std::shared_ptr<QuickGraph::LabeledGraph> baseGraph) const {
-	unordered_map<string, double> absolute_freq = absolute_object_freq(baseGraph);
-	PushDownWeigher subWeigher(absolute_freq, -1);
+	vector<double> absolute_freq = absolute_object_freq(baseGraph);
+	PushDownWeigher subWeigher(absolute_freq);
 	return subWeigher.weigh(baseGraph);
 }
 
 void InverseObjectFrequencyWeigher::weigh(std::shared_ptr<QuickGraph::LabeledGraph> baseGraph) const {
-	unordered_map<string, double> absolute_freq = absolute_object_freq(baseGraph);
-	unordered_map<string, double> inverse_freq = inverse_the_frequency(absolute_freq);
-	PushDownWeigher subWeigher(inverse_freq, -1);
+	vector<double> absolute_freq = absolute_object_freq(baseGraph);
+	inverse_the_frequency_vec(absolute_freq);
+	PushDownWeigher subWeigher(absolute_freq);
 	return subWeigher.weigh(baseGraph);
 }
 
 void InverseObjectFrequencyWeigherSplitDown::weigh(std::shared_ptr<QuickGraph::LabeledGraph> baseGraph) const {
-	unordered_map<string, double> absolute_freq = absolute_object_freq(baseGraph);
-	unordered_map<string, double> inverse_freq = inverse_the_frequency(absolute_freq);
-	SplitDownWeigher subWeigher(inverse_freq, -1);
+	vector<double> absolute_freq = absolute_object_freq(baseGraph);
+	inverse_the_frequency_vec(absolute_freq);
+	SplitDownWeigher subWeigher(absolute_freq);
 	return subWeigher.weigh(baseGraph);
 }
 
-void PredicateObjectFrequencyWeigher::weigh(std::shared_ptr<QuickGraph::LabeledGraph> baseGraph) const {
-	unordered_map<stringPr, double> absolute_freq = absolute_predicate_object_freq(baseGraph);
-	TPt < TNodeEdgeNet<string, WeightedPredicate> > newNet = newNetCopyNodes(baseGraph);
-	for (TNodeEdgeNet<string, string>::TEdgeI EI = baseGraph->BegEI(); EI < baseGraph->EndEI(); EI++) {
-		string pred = EI.GetDat();
-		string obj = EI.GetDstNDat();
-		stringPr PO(pred, obj);
-		WeightedPredicate wpred(pred, absolute_freq.GetDat(PO));
-		newNet->AddEdge(EI.GetSrcNId(), EI.GetDstNId(), EI.GetId(), wpred);
+namespace {
+void predObWeigh(std::shared_ptr<QuickGraph::LabeledGraph> baseGraph, std::unordered_map<std::pair<flyString, flyString>, double, pairhash> & freqs) {
+	std::vector<QuickGraph::Node> & nodes = baseGraph->nodes;
+	for (std::vector<QuickGraph::Node>::iterator nodeI = nodes.begin(); nodeI != nodes.end(); nodeI++) {
+		std::vector<QuickGraph::Edge> & edges = nodeI->edges;
+		for (std::vector<QuickGraph::Edge>::iterator edgeI = edges.begin(); edgeI != edges.end(); edgeI++) {
+			flyString pred = edgeI->label;
+			flyString obj = nodes[edgeI->targetIndex].label;
+			std::pair<flyString, flyString> pair(pred, obj);
+			double weight = freqs.at(pair);
+			edgeI->weight = weight;
+		}
 	}
-	normalize (newNet);
-	return newNet;
+	normalize(baseGraph);
+}
+}
+
+void PredicateObjectFrequencyWeigher::weigh(std::shared_ptr<QuickGraph::LabeledGraph> baseGraph) const {
+	std::unordered_map<std::pair<flyString, flyString>, double, pairhash> absolute_freq = absolute_predicate_object_freq(baseGraph);
+	predObWeigh(baseGraph, absolute_freq);
 }
 
 void InversePredicateObjectFrequencyWeigher::weigh(std::shared_ptr<QuickGraph::LabeledGraph> baseGraph) const {
-	unordered_map<stringPr, double> absolute_freq = absolute_predicate_object_freq(baseGraph);
-	unordered_map<stringPr, double> inverse_freq = inverse_the_frequency(absolute_freq);
-	TPt < TNodeEdgeNet<string, WeightedPredicate> > newNet = newNetCopyNodes(baseGraph);
-	for (TNodeEdgeNet<string, string>::TEdgeI EI = baseGraph->BegEI(); EI < baseGraph->EndEI(); EI++) {
-		string pred = EI.GetDat();
-		string obj = EI.GetDstNDat();
-		stringPr PO(pred, obj);
-		WeightedPredicate wpred(pred, inverse_freq.GetDat(PO));
-		newNet->AddEdge(EI.GetSrcNId(), EI.GetDstNId(), EI.GetId(), wpred);
-	}
-	normalize (newNet);
-	return newNet;
+	std::unordered_map<std::pair<flyString, flyString>, double, pairhash> absolute_freq = absolute_predicate_object_freq(baseGraph);
+	inverse_the_frequency_map(absolute_freq);
+	predObWeigh(baseGraph, absolute_freq);
 }
 
 void PushDownWeigher::weigh(std::shared_ptr<QuickGraph::LabeledGraph> baseGraph) const {
-	TPt < TNodeEdgeNet<string, WeightedPredicate> > newNet = newNetCopyNodes(baseGraph);
+	vector<QuickGraph::Node> & nodes = baseGraph->nodes;
+	assert(nodes.size() == this->nodeWeights.size());
 
-	//add all edges with assigned weight
-	for (TNodeEdgeNet<string, string>::TNodeI NI = baseGraph->BegNI(); NI < baseGraph->EndNI(); NI++) {
-		double weight = this->defaultWeight;
-		//overwrite default if a value is set
-		nodeWeights.IsKeyGetDat(NI.GetDat(), weight);
-		int node_i_indeg = NI.GetInDeg();
-		if (node_i_indeg > 0) {
-			if (this->defaultWeight == -1.0 && weight == -1.0) {
-				cerr << "Defaultweight was  -1 and node was not found in the given map -> ERROR, quitting";
-				exit(1);
-			}
-			//add all *in* edges with the weight
-			for (int inEdge = 0; inEdge < node_i_indeg; ++inEdge) {
-				string label = NI.GetInEDat(inEdge);
-				const WeightedPredicate pred(label, weight);
-				newNet->AddEdge(NI.GetInNId(inEdge), NI.GetId(), NI.GetInEId(inEdge), pred);
-			}
+	for (unsigned int i = 0; i < this->nodeWeights.size(); i++) {
+		std::vector<QuickGraph::Edge> & edges = nodes[i].edges;
+
+		for (std::vector<QuickGraph::Edge>::iterator edge = edges.begin(); edge != edges.end(); edge++) {
+
+			int targetIndex = edge->targetIndex;
+			double weight = this->nodeWeights[targetIndex];
+			edge->weight = weight;
 		}
 	}
-	normalize (newNet);
-
-	return newNet;
-
+	normalize(baseGraph);
 }
 
 void SplitDownWeigher::weigh(std::shared_ptr<QuickGraph::LabeledGraph> baseGraph) const {
-	TPt < TNodeEdgeNet<string, WeightedPredicate> > newNet = newNetCopyNodes(baseGraph);
+	vector<QuickGraph::Node> & nodes = baseGraph->nodes;
+	assert(nodes.size() == this->nodeWeights.size());
 
-	//add all edges with assigned weight
-	for (TNodeEdgeNet<string, string>::TNodeI NI = baseGraph->BegNI(); NI < baseGraph->EndNI(); NI++) {
-		double weight = this->defaultWeight;
-		//overwrite default if a value is set
-		nodeWeights.IsKeyGetDat(NI.GetDat(), weight);
-		int indeg = NI.GetInDeg();
-		if (indeg > 0) {
-			if (this->defaultWeight == -1.0 && weight == -1.0) {
-				cerr << "Defaultweight was  -1 and node was not found in the given map -> ERROR, quitting";
-				exit(1);
-			}
-			//add all *in* edges with the weight/indegree
-			weight = weight / double(indeg);
-			for (int inEdge = 0; inEdge < indeg; ++inEdge) {
-				string label = NI.GetInEDat(inEdge);
-				const WeightedPredicate pred(label, weight);
-				newNet->AddEdge(NI.GetInNId(inEdge), NI.GetId(), NI.GetInEId(inEdge), pred);
-			}
+	//determine all in degrees
+	vector<int> indegrees;
+	indegrees.resize(nodes.size(), 0);
+	for (unsigned int i = 0; i < this->nodeWeights.size(); i++) {
+		std::vector<QuickGraph::Edge> & edges = nodes[i].edges;
+		for (std::vector<QuickGraph::Edge>::iterator edge = edges.begin(); edge != edges.end(); edge++) {
+			int targetIndex = edge->targetIndex;
+			indegrees[targetIndex]++;
 		}
 	}
-	normalize (newNet);
 
-	return newNet;
+	for (unsigned int i = 0; i < this->nodeWeights.size(); i++) {
+		std::vector<QuickGraph::Edge> & edges = nodes[i].edges;
+
+		for (std::vector<QuickGraph::Edge>::iterator edge = edges.begin(); edge != edges.end(); edge++) {
+			int targetIndex = edge->targetIndex;
+			double weight = this->nodeWeights[targetIndex] / indegrees[targetIndex];
+			edge->weight = weight;
+		}
+	}
+	normalize(baseGraph);
 
 }
