@@ -37,7 +37,7 @@ class Node {
 	//no copying of nodes
 	//Node(const Node & node);
 public:
-	Node(std::string label) {
+	Node(std::string label) : label(label){
 
 	}
 	boost::flyweight<std::string> label;

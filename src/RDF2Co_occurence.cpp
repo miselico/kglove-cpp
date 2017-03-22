@@ -8,6 +8,7 @@
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <tuple>
 #include <algorithm>
 #include <unordered_map>
 #include "nTripleParser.h"
@@ -89,7 +90,7 @@ public:
 	boost::unordered_set<Node*> outedgeDestination;
 
 	Node(int ID) :
-			ID(ID), inedgeSources(5), outedgeDestination(5) {			//Intentionally empty
+			ID(ID), inedgeSources(2), outedgeDestination(2) {			//Intentionally empty
 	}
 
 	int getInDeg() const {
@@ -126,11 +127,12 @@ public:
 				if (src != dst) {
 					boost::unordered_set<Node*>::value_type sourceNode = &(*this)[src];
 					boost::unordered_set<Node*>::value_type destinationNode = &(*this)[dst];
-					std::pair<boost::unordered::iterator_detail::c_iterator<boost::unordered::detail::ptr_node<Node*> >, bool> a;
 
-					a = sourceNode->outedgeDestination.insert(destinationNode);
+					//std::pair<boost::unordered::iterator_detail::c_iterator<boost::unordered::detail::ptr_node<Node*> >, bool> a;
+					bool inserted;
+					std::tie(std::ignore, inserted) = sourceNode->outedgeDestination.insert(destinationNode);
 
-					if (a.second) {
+					if (inserted) {
 						destinationNode->inedgeSources.insert(sourceNode);
 					}
 				}
@@ -537,7 +539,8 @@ public:
 
 		std::vector<QuickGraph::Node> & nodes = this->_weightedGraph->nodes;
 		for (std::vector<QuickGraph::Node>::iterator iter = nodes.begin(); iter != nodes.end(); iter++) {
-			fprintf(glove_vocab_file_out, "%s nofr\n", iter->label.get().c_str());
+			const string & label = iter->label.get();
+			fprintf(glove_vocab_file_out, "%s nofr\n", label.c_str());
 		}
 
 		//still need to write all predicates to the vocab file
@@ -802,10 +805,10 @@ namespace RDF2CO {
 
 void performExperiments() {
 	//string graphInputFile = "../../datasets/dbPedia/allData27_30M.nt";
-	string graphInputFile = "../../datasets/wikidata-simple-statements-10_000000-sample.nt";
+	//string graphInputFile = "../../datasets/wikidata-simple-statements-10_000000-sample.nt";
 
 //string graphInputFile = "SmallTest.nt";
-	//string graphInputFile = "SmallTest9_loop.nt";
+	string graphInputFile = "SmallTest9_loop.nt";
 
 	UniformWeigher weigher;
 //two options, if the BCA order has been precomputed:

@@ -12,7 +12,6 @@
 #include <utility>
 #include <unordered_map>
 
-
 using namespace std;
 
 //int main(int argc, char **argv) {
@@ -23,9 +22,9 @@ using namespace std;
 //}
 
 int main(int argc, char **argv) {
-	try{
-	RDF2CO::performExperiments();
-	} catch (char const* str){
+	try {
+		RDF2CO::performExperiments();
+	} catch (char const* str) {
 		cout << str << endl;
 		throw str;
 	}

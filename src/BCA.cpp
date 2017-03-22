@@ -73,7 +73,6 @@ void BCV::add(const BCV & other) {
 	}
 }
 
-
 void BCV::add(const CompactBCV & other) {
 	for (vector<pair<unsigned int, double>>::const_iterator iter = other.values.cbegin(); iter != other.values.cend(); iter++) {
 		unsigned int ID = iter->first;
@@ -266,7 +265,7 @@ shared_ptr<CompactBCV> computeBCAIncludingEdgesCached(std::shared_ptr<QuickGraph
 			}
 		}
 	}
-	bcvCache[b_ID] = shared_ptr<CompactBCV>(new CompactBCV(p));//   [b_ID] = p;
+	bcvCache[b_ID] = shared_ptr<CompactBCV>(new CompactBCV(p));				//   [b_ID] = p;
 	return bcvCache[b_ID];
 }
 

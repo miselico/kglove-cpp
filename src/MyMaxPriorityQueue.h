@@ -1,11 +1,9 @@
 
-
 #ifndef MY_MAXPRIORITYQUEUE_H_
 #define MY_MAXPRIORITYQUEUE_H_
 
 #include <vector>
 #include <unordered_map>
-
 
 /**
  * Adapted from Snap/glib priorityqueue
@@ -43,19 +41,19 @@ public:
 	bool IsEmpty();
 };
 
-template <class VAL>unsigned int MyMaxPriorityQueue<VAL>::Parent(unsigned int i) {
+template<class VAL> unsigned int MyMaxPriorityQueue<VAL>::Parent(unsigned int i) {
 	return (i + 1) / 2 - 1;
 }
 
-template <class VAL>unsigned int MyMaxPriorityQueue<VAL>::Left(unsigned int i) {
+template<class VAL> unsigned int MyMaxPriorityQueue<VAL>::Left(unsigned int i) {
 	return i * 2 + 1;
 }
 
-template <class VAL>unsigned int MyMaxPriorityQueue<VAL>::Right(unsigned int i) {
+template<class VAL> unsigned int MyMaxPriorityQueue<VAL>::Right(unsigned int i) {
 	return i * 2 + 2;
 }
 
-template <class VAL>void MyMaxPriorityQueue<VAL>::Swap(unsigned int i,unsigned  int j) {
+template<class VAL> void MyMaxPriorityQueue<VAL>::Swap(unsigned int i, unsigned int j) {
 	std::swap(Priorities[i], Priorities[j]);
 	std::swap(IndexToVal[i], IndexToVal[j]);
 
@@ -64,7 +62,7 @@ template <class VAL>void MyMaxPriorityQueue<VAL>::Swap(unsigned int i,unsigned  
 }
 
 // If the max-heap invariant is satisfied except for index i possibly being smaller than a child, restore the invariant.
-template <class VAL>void MyMaxPriorityQueue<VAL>::MaxHeapify(unsigned int i) {
+template<class VAL> void MyMaxPriorityQueue<VAL>::MaxHeapify(unsigned int i) {
 	unsigned int largest = i;
 	if (Left(i) < Priorities.size() && Priorities[Left(i)] > Priorities[largest]) {
 		largest = Left(i);
@@ -78,7 +76,7 @@ template <class VAL>void MyMaxPriorityQueue<VAL>::MaxHeapify(unsigned int i) {
 	}
 }
 
-template <class VAL>void MyMaxPriorityQueue<VAL>::Insert(const VAL& X, double Priority) {
+template<class VAL> void MyMaxPriorityQueue<VAL>::Insert(const VAL& X, double Priority) {
 	ValToIndex[X] = IndexToVal.size();
 	IndexToVal.push_back(X);
 	// Priorities.Add(-INFINITY);
@@ -86,7 +84,7 @@ template <class VAL>void MyMaxPriorityQueue<VAL>::Insert(const VAL& X, double Pr
 	SetPriority(X, Priority);
 }
 
-template <class VAL>void MyMaxPriorityQueue<VAL>::SetPriority(const VAL& X, double NewPriority) {
+template<class VAL> void MyMaxPriorityQueue<VAL>::SetPriority(const VAL& X, double NewPriority) {
 	auto i_iter = ValToIndex.find(X);
 	if (i_iter == ValToIndex.end()) {
 		Insert(X, NewPriority);
@@ -105,7 +103,7 @@ template <class VAL>void MyMaxPriorityQueue<VAL>::SetPriority(const VAL& X, doub
 	}
 }
 
-template <class VAL>double MyMaxPriorityQueue<VAL>::GetPriority(const VAL& X) {
+template<class VAL> double MyMaxPriorityQueue<VAL>::GetPriority(const VAL& X) {
 	auto index = ValToIndex.find(X);
 	if (index != ValToIndex.end()) {
 		return Priorities[index->second];
@@ -114,12 +112,12 @@ template <class VAL>double MyMaxPriorityQueue<VAL>::GetPriority(const VAL& X) {
 	}
 }
 
-template <class VAL>float MyMaxPriorityQueue<VAL>::GetMaxPriority() {
+template<class VAL> float MyMaxPriorityQueue<VAL>::GetMaxPriority() {
 	assert(Size() > 0 && "Attempt to query max priority of empty priority queue.");
 	return Priorities[0];
 }
 
-template <class VAL>int MyMaxPriorityQueue<VAL>::PopMax() {
+template<class VAL> int MyMaxPriorityQueue<VAL>::PopMax() {
 	assert(Size() > 0 && "Attempt to query max priority of empty priority queue.");
 	int maxVal = IndexToVal[0];
 	Swap(0, Priorities.size() - 1);
@@ -131,14 +129,12 @@ template <class VAL>int MyMaxPriorityQueue<VAL>::PopMax() {
 	return maxVal;
 }
 
-template <class VAL>int MyMaxPriorityQueue<VAL>::Size() {
+template<class VAL> int MyMaxPriorityQueue<VAL>::Size() {
 	return Priorities.size();
 }
 
-template <class VAL>bool MyMaxPriorityQueue<VAL>::IsEmpty() {
+template<class VAL> bool MyMaxPriorityQueue<VAL>::IsEmpty() {
 	return Size() == 0;
 }
-
-
 
 #endif /*MY_MAXPRIORITYQUEUE_H_*/

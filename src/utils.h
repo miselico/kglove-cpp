@@ -11,7 +11,6 @@
 #include <string>
 #include "graph/LabeledGraph.h"
 
-
 //template<class NodeData, class EdgeData>
 //TPt<TNodeEdgeNet<NodeData, EdgeData> > reverseGraph(TPt<TNodeEdgeNet<NodeData, EdgeData> > baseGraph);
 
