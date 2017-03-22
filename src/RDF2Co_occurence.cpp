@@ -12,6 +12,7 @@
 #include <algorithm>
 #include <unordered_map>
 #include "nTripleParser.h"
+#include <wordexp.h>
 
 #include "MyMaxPriorityQueue.h"
 
@@ -807,8 +808,11 @@ void performExperiments() {
 	//string graphInputFile = "../../datasets/dbPedia/allData27_30M.nt";
 	//string graphInputFile = "../../datasets/wikidata-simple-statements-10_000000-sample.nt";
 
+	string tmpDir = "/tmp/miselico";
+	string graphInputFile = tmpDir + "/allData.n3";
+
 //string graphInputFile = "SmallTest.nt";
-	string graphInputFile = "SmallTest9_loop.nt";
+//	string graphInputFile = "SmallTest9_loop.nt";
 
 	UniformWeigher weigher;
 //two options, if the BCA order has been precomputed:
@@ -818,12 +822,12 @@ void performExperiments() {
 	co_occurence_computer::Co_occurenceComputer c(graphInputFile, weigher);
 //	co_occurence_computer::Co_occurenceComputer_Ultimate c(graphInputFile, weigher, weigher);
 //now, c can be used to compute co_occurence matrices
-	for (double alpha = 0.5; alpha <= 0.5; alpha += 0.1) {
-		for (double eps = 0.001; eps >= 0.00001; eps /= 10) {
+	for (double alpha = 0.7; alpha <= 0.7; alpha += 0.1) {
+		for (double eps = 0.0039; eps >= 0.000039; eps /= 10) {
 
-			string glove_input_file = "glove_input_file_out_alpha_" + boost::lexical_cast<std::string>(alpha) + "_eps_" + boost::lexical_cast<std::string>(eps) + ".bin";
+			string glove_input_file = tmpDir + "/output/glove_input_file_out_edge_uniform_alpha_" + boost::lexical_cast<std::string>(alpha) + "_eps_" + boost::lexical_cast<std::string>(eps) + ".bin";
 
-			string glove_vocab_file = "glove_vocab_file_out_alpha_" + boost::lexical_cast<std::string>(alpha) + "_eps_" + boost::lexical_cast<std::string>(eps) + ".bin";
+			string glove_vocab_file = tmpDir + "/output/glove_vocab_file_out_edge_uniform_alpha_" + boost::lexical_cast<std::string>(alpha) + "_eps_" + boost::lexical_cast<std::string>(eps) + ".bin";
 
 			cout << "writing to " << glove_input_file << endl;
 			cout << "\tand " << glove_vocab_file << endl;
