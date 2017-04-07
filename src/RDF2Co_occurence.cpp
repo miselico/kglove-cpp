@@ -86,8 +86,8 @@ class Node {
 public:
 	//TODO this also works with std::set instead of unordered. Check what is faster for large graphs.
 	int ID;
-	boost::unordered_set<Node*> inedgeSources;
-	boost::unordered_set<Node*> outedgeDestination;
+	std::unordered_set<Node*> inedgeSources;
+	std::unordered_set<Node*> outedgeDestination;
 
 	Node(int ID) :
 			ID(ID), inedgeSources(2), outedgeDestination(2) {			//Intentionally empty
@@ -183,7 +183,7 @@ vector<unsigned int> determineBCAcomputeOrder(std::shared_ptr<const QuickGraph::
 		//n will be removed from the graph. Add all nodes which will get zero out degree to the set
 		Node& toBeRemoved = prunable_graph[n];
 
-		for (boost::unordered_set<Node*>::const_iterator dependant = toBeRemoved.inedgeSources.cbegin(); dependant != toBeRemoved.inedgeSources.cend(); dependant++) {
+		for (std::unordered_set<Node*>::const_iterator dependant = toBeRemoved.inedgeSources.cbegin(); dependant != toBeRemoved.inedgeSources.cend(); dependant++) {
 			//it is enough to check the outdegree being 1. The graph guarantees that there is only one directed edge between an ordered pair of nodes.
 			if ((*dependant)->getOutDeg() == 1) {
 				zeroOutDegrees.setTrueAndRecord((*dependant)->ID);
@@ -235,7 +235,7 @@ vector<unsigned int> determineBCAcomputeOrder(std::shared_ptr<const QuickGraph::
 		//k will be removed add all nodes which will get a zero out degree to set
 		Node& kNode = prunable_graph[k];
 
-		for (boost::unordered_set<Node*>::const_iterator dependant = kNode.inedgeSources.cbegin(); dependant != kNode.inedgeSources.cend(); dependant++) {
+		for (std::unordered_set<Node*>::const_iterator dependant = kNode.inedgeSources.cbegin(); dependant != kNode.inedgeSources.cend(); dependant++) {
 			//it is enough to check the outdegree being 1. The graph guarantees that there is only one directed edge between an ordered pair of nodes.
 			if ((*dependant)->getOutDeg() == 1) {
 				zeroOutDegrees.setTrueAndRecord((*dependant)->ID);
@@ -245,7 +245,7 @@ vector<unsigned int> determineBCAcomputeOrder(std::shared_ptr<const QuickGraph::
 		}
 
 		//update the priorities of all nodes k is pointing to
-		for (boost::unordered_set<Node*>::const_iterator dest = kNode.outedgeDestination.cbegin(); dest != kNode.outedgeDestination.cend(); dest++) {
+		for (std::unordered_set<Node*>::const_iterator dest = kNode.outedgeDestination.cbegin(); dest != kNode.outedgeDestination.cend(); dest++) {
 			//We add one to indicate that even a node with 0 in degree is still a valid node.
 			//Here we use the fact that there are no self edges in the graph. Otherwise we have to make sure that dest.id != k
 			highestInDegree.SetPriority((*dest)->ID, (*dest)->getInDeg() - 1 + 1);
@@ -275,7 +275,7 @@ vector<unsigned int> determineBCAcomputeOrder(std::shared_ptr<const QuickGraph::
 			//n will be removed from the graph. Add all nodes which will get zero out degree to the set
 			Node& toBeRemoved = prunable_graph[n];
 
-			for (boost::unordered_set<Node*>::const_iterator dependant = toBeRemoved.inedgeSources.cbegin(); dependant != toBeRemoved.inedgeSources.cend(); dependant++) {
+			for (std::unordered_set<Node*>::const_iterator dependant = toBeRemoved.inedgeSources.cbegin(); dependant != toBeRemoved.inedgeSources.cend(); dependant++) {
 				//it is enough to check the outdegree being 1. The graph guarantees that there is only one directed edge between an ordered pair of nodes.
 				if ((*dependant)->getOutDeg() == 1) {
 					zeroOutDegrees.setTrueAndRecord((*dependant)->ID);
@@ -501,6 +501,7 @@ public:
 			const int focusWordGloveID = graphIDToGloveID(focusWordGraphID);
 
 			if (normalize) {
+				//Removes value for focusword + normalizes and write that value out immediately.
 				double totalSum = 0.0;
 				for (vector<pair<unsigned int, double>>::const_iterator iter = combinedbcv->values.cbegin(); iter != combinedbcv->values.cend(); iter++) {
 					if (iter->first != focusWordGraphID) {
@@ -804,6 +805,8 @@ namespace RDF2CO {
 //}
 
 void performExperiments() {
+
+	cerr << "TODO: check whether increasing locality (instead of followig chains) in BCA order improves performance" << endl;
 	//string graphInputFile = "../../datasets/dbPedia/allData27_30M.nt";
 	//string graphInputFile = "../../datasets/wikidata-simple-statements-10_000000-sample.nt";
 
