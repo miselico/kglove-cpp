@@ -679,6 +679,7 @@ public:
 //					}
 //				}
 //				BCV backwardBCV = computeBCACached(_weightedReverseGraph, focusWordGraphID, bca_alpha, bca_eps, bcvBackwardCache);
+//Note: the previous line contians a bug: this should be the includingedges variant.
 //
 //				//combine with what is in the forward cache
 //				BCV forwardBCV = bcvForwardCache.GetDat(focusWordGraphID);
