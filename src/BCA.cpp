@@ -17,13 +17,15 @@ void BCV::fixPaint(unsigned int ID, double amount) {
 	std::unordered_map<unsigned int, double>::iterator it = this->find(ID);
 	if (it != this->end()) {
 		startamount = it->second;
+		double newAmount = startamount + amount;
+		this->at(ID) = newAmount;
+	} else {
+		auto ret = this->emplace(ID, amount);
+		assert(ret.second);
 	}
-
-	double newAmount = startamount + amount;
-	this->emplace(ID, newAmount);
 }
 
-string BCV::toString(const std::shared_ptr<QuickGraph::LabeledGraph> network) {
+string BCV::toStringWithOnlyNodeLabels(const std::shared_ptr<QuickGraph::LabeledGraph> network) {
 	string s = "{";
 	string separator = "";
 
@@ -172,7 +174,9 @@ BCV computeBCAIncludingEdges(std::shared_ptr<QuickGraph::LabeledGraph> network, 
 
 			boost::flyweight<string> outEdgeLabel = edge->label;
 			int outEdgeBCVID = predIDs.at(outEdgeLabel);
-			p.fixPaint(outEdgeBCVID, paintToJ);
+			//note: this was fixed. Not all paint going trough should be added to the edge. Only the fraction which will stay in the destination.
+			p.fixPaint(outEdgeBCVID, paintToJ * alpha);
+			//p.fixPaint(outEdgeBCVID, paintToJ);
 
 			Q.addPaintTo(j, paintToJ);
 		}
@@ -220,6 +224,16 @@ BCV computeBCACached(std::shared_ptr<QuickGraph::LabeledGraph> network, unsigned
 	return p;
 }
 
+void printBCV(BCV& bcv) {
+	cout << "[";
+	string sep = "";
+	for (std::unordered_map<unsigned int, double>::const_iterator iter = bcv.cbegin(); iter != bcv.cend(); iter++) {
+		cout << sep << iter->first << "," << iter->second;
+		sep = " | ";
+	}
+	cout << "]" << endl;
+}
+
 shared_ptr<CompactBCV> computeBCAIncludingEdgesCached(std::shared_ptr<QuickGraph::LabeledGraph> network, unsigned int b_ID, double alpha, double eps,
 		const std::unordered_map<flyString, unsigned int> & predIDs, vector<std::shared_ptr<CompactBCV>> & bcvCache) {
 	BCAQueue Q;
@@ -227,6 +241,7 @@ shared_ptr<CompactBCV> computeBCAIncludingEdgesCached(std::shared_ptr<QuickGraph
 	Q.addPaintTo(b_ID, 1.0);
 
 	while (!Q.empty()) {
+		//printBCV(p);
 		pair<unsigned int, double> element = Q.pop();
 		unsigned int i = element.first;
 		double w = element.second;
@@ -258,8 +273,9 @@ shared_ptr<CompactBCV> computeBCAIncludingEdgesCached(std::shared_ptr<QuickGraph
 
 				flyString & outEdgeLabel = edge->label;
 				int outEdgeBCVID = predIDs.at(outEdgeLabel);
-				p.fixPaint(outEdgeBCVID, paintToJ);
-
+				//note: this was fixed. Not all paint going trough should be added to the edge. Only the fraction which will stay in the destination.
+				p.fixPaint(outEdgeBCVID, paintToJ * alpha);
+				//p.fixPaint(outEdgeBCVID, paintToJ);
 				Q.addPaintTo(j, paintToJ);
 
 			}

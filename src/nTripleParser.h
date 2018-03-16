@@ -20,6 +20,9 @@ std::pair<std::shared_ptr<QuickGraph::LabeledGraph>, std::unordered_map<std::str
 
 std::pair<std::shared_ptr<QuickGraph::LabeledGraph>, std::unordered_map<std::string, unsigned int> > buildRDFGraphIgnoreLiterals(const std::string & filename);
 
+std::pair<std::shared_ptr<QuickGraph::LabeledGraph>, std::unordered_map<std::string, unsigned int> > buildRDFGraph(const std::string & filename, const bool removeLiterals);
+
+
 }
 
 #endif /* NTRIPLEPARSER_H_ */

@@ -39,7 +39,7 @@ public:
 
 // A blank node is at the start of this line, parses it of and returns the remaining of the line.
 pair<string, string> parseBlankNodeOf(const string & line) {
-	int firstUnderScoreColon = line.find("_:", 0);
+	std::size_t firstUnderScoreColon = line.find("_:", 0);
 
 	assert(firstUnderScoreColon != string::npos && "_: expected not found ");
 	string atBNStart = line.substr(firstUnderScoreColon);
@@ -219,6 +219,12 @@ namespace n3parser {
 pair<std::shared_ptr<QuickGraph::LabeledGraph>, unordered_map<string, unsigned int> > buildRDFGraph(const string & filename) {
 	return buildRDFGraphInternal(filename, false);
 }
+
+pair<std::shared_ptr<QuickGraph::LabeledGraph>, unordered_map<string, unsigned int> > buildRDFGraph(const string & filename, const bool removeLiterals) {
+	return buildRDFGraphInternal(filename, removeLiterals);
+}
+
+
 
 pair<std::shared_ptr<QuickGraph::LabeledGraph>, unordered_map<string, unsigned int> > buildRDFGraphIgnoreLiterals(const string & filename) {
 	return buildRDFGraphInternal(filename, true);

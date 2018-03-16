@@ -28,7 +28,7 @@ public:
 	BCV() {
 
 	}
-	std::string toString(const std::shared_ptr<QuickGraph::LabeledGraph> network);
+	std::string toStringWithOnlyNodeLabels(const std::shared_ptr<QuickGraph::LabeledGraph> network);
 	void fixPaint(unsigned int ID, double amount);
 	void removeEntry(unsigned int ID);
 	//This function normalizes the vector such that pageranks add up to 1 IN PLACE

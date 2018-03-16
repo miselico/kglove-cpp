@@ -21,6 +21,8 @@
 #include <boost/graph/adjacency_list.hpp>
 #include "boost/lexical_cast.hpp"
 #include <boost/flyweight.hpp>
+#include <boost/algorithm/string/replace.hpp>
+
 //#include <boost/graph/topological_sort.hpp>
 #include <utility>                   // for std::pair
 #include <assert.h>
@@ -361,27 +363,26 @@ typedef struct cooccur_rec {
  *
  * The index will be strictly greater as zero since that is what glove uses to skip an entry.
  */
-static unordered_map<pair<flyString, flyString>, int, pairhash> createPairedWordIndexTable(shared_ptr<QuickGraph::LabeledGraph> graph) {
-
-	unordered_map<pair<flyString, flyString>, int, pairhash> table;
-
-	int counter = 1;
-	for (auto nodeI = graph->nodes.begin(); nodeI < graph->nodes.end(); nodeI++) {
-		for (auto edgeI = nodeI->edges.begin(); edgeI < nodeI->edges.end(); edgeI++) {
-			flyString predicate = edgeI->label;
-			flyString object = graph->nodes[edgeI->targetIndex].label;
-			std::pair<flyString, flyString> p(predicate, object);
-
-			if (table.find(p) == table.end()) {
-				std::pair<std::pair<flyString, flyString>, int> q(p, counter);
-				table.insert(q);
-				counter++;
-			}
-		}
-	}
-	return table;
-}
-
+//static unordered_map<pair<flyString, flyString>, int, pairhash> createPairedWordIndexTable(shared_ptr<QuickGraph::LabeledGraph> graph) {
+//
+//	unordered_map<pair<flyString, flyString>, int, pairhash> table;
+//
+//	int counter = 1;
+//	for (auto nodeI = graph->nodes.begin(); nodeI < graph->nodes.end(); nodeI++) {
+//		for (auto edgeI = nodeI->edges.begin(); edgeI < nodeI->edges.end(); edgeI++) {
+//			flyString predicate = edgeI->label;
+//			flyString object = graph->nodes[edgeI->targetIndex].label;
+//			std::pair<flyString, flyString> p(predicate, object);
+//
+//			if (table.find(p) == table.end()) {
+//				std::pair<std::pair<flyString, flyString>, int> q(p, counter);
+//				table.insert(q);
+//				counter++;
+//			}
+//		}
+//	}
+//	return table;
+//}
 /*
  * The wordIndexTable is indexed from 0 as it should be, but we need IDs which start from 1. This function abstracts this away
  */
@@ -442,8 +443,8 @@ private:
 
 public:
 
-	Co_occurenceComputer(const string & inputGraphFileName, GraphWeigher& weighingStrategy) {
-		pair<shared_ptr<QuickGraph::LabeledGraph>, unordered_map<string, unsigned int> > graphAndNodeIndex = n3parser::buildRDFGraphIgnoreLiterals(inputGraphFileName);
+	Co_occurenceComputer(const string & inputGraphFileName, GraphWeigher& weighingStrategy, const bool removeLiterals) {
+		pair<shared_ptr<QuickGraph::LabeledGraph>, unordered_map<string, unsigned int> > graphAndNodeIndex = n3parser::buildRDFGraph(inputGraphFileName, removeLiterals);
 		_weightedGraph = graphAndNodeIndex.first;
 		reWeigh(weighingStrategy);
 		pair<vector<flyString>, unordered_map<flyString, unsigned int> > predLabelsAndIDs = computePredicateIDs(_weightedGraph);
@@ -478,7 +479,7 @@ public:
 	 *
 	 *
 	 */
-	void computeFrequenciesIncludingEdges(double bca_alpha, double bca_eps, FILE * glove_input_file_out, FILE * glove_vocab_file_out, bool normalize, bool onlyEntities) {
+	void computeFrequenciesIncludingEdges(double bca_alpha, double bca_eps, FILE * glove_input_file_out, bool normalize, bool onlyEntities) {
 
 		const int infoFrequency = _order.size() > 1000000 ? 100000 : 10000;
 		vector<std::shared_ptr<CompactBCV>> bcvCache;
@@ -536,6 +537,9 @@ public:
 			}
 		}
 
+	}
+
+	void writeVocabFileIncludingEdges(FILE * glove_vocab_file_out) {
 		//still need to write all node labels to the vocab file
 
 		std::vector<QuickGraph::Node> & nodes = this->_weightedGraph->nodes;
@@ -808,39 +812,48 @@ namespace RDF2CO {
 void performExperiments() {
 
 	cerr << "TODO: check whether increasing locality (instead of followig chains) in BCA order improves performance" << endl;
+	cerr << "note: corrected fixing of paint on edges. Multiplied with alpha before fixing!" << endl;
+	cerr << "TODO: check the following: at each BCV computation a bit of page rank is dropped. When reused, each time this bit is multiplied. Does this mean that in the end a lot of pagerank is lost?"
+			<< endl;
+	cerr << "enable -NDEBUG for actual runs" << endl;
 	//string graphInputFile = "../../datasets/dbPedia/allData27_30M.nt";
 	//string graphInputFile = "../../datasets/wikidata-simple-statements-10_000000-sample.nt";
 
 //string graphInputFile = "SmallTest.nt";
-	string graphInputFile = "SmallTest9_loop.nt";
-
+	//string graphInputFile = "SmallTest9_loop.nt";
+	//string graphInputFile = "SmallTest11_simpleLoop.nt";
+	string graphInputFile = "proteinInteraction.nt";
 	UniformWeigher weigher;
 //two options, if the BCA order has been precomputed:
 //string precomputedBCAOrderFile = "BCAComputeOrder.txt";
 //Co_occurenceComputer c(graphInputFile, precomputedBCAOrderFile, weigher);
 //if it has not been precomputed:
-	co_occurence_computer::Co_occurenceComputer c(graphInputFile, weigher);
+	co_occurence_computer::Co_occurenceComputer c(graphInputFile, weigher, false);
 //	co_occurence_computer::Co_occurenceComputer_Ultimate c(graphInputFile, weigher, weigher);
 //now, c can be used to compute co_occurence matrices
-	for (double alpha = 0.5; alpha <= 0.5; alpha += 0.1) {
-		for (double eps = 0.001; eps >= 0.00001; eps /= 10) {
 
-			string glove_input_file = "glove_input_file_out_alpha_" + boost::lexical_cast<std::string>(alpha) + "_eps_" + boost::lexical_cast<std::string>(eps) + ".bin";
+	string glove_vocab_file = "glove_vocab_file_" + boost::replace_all_copy(graphInputFile, ".", "-") + ".txt";
+	FILE* glove_vocab_file_out = fopen(glove_vocab_file.c_str(), "w");
+	c.writeVocabFileIncludingEdges(glove_vocab_file_out);
+	fclose(glove_vocab_file_out);
+	cout << "vocab written to " << glove_vocab_file << endl;
 
-			string glove_vocab_file = "glove_vocab_file_out_alpha_" + boost::lexical_cast<std::string>(alpha) + "_eps_" + boost::lexical_cast<std::string>(eps) + ".bin";
+	for (double alpha = 0.1; alpha <= 0.5; alpha += 0.1) {
+		for (double eps = 0.00001; eps <= 0.0001; eps *= 10) {
+
+			string glove_input_file = "glove_input_file_out_alpha_" + boost::lexical_cast<std::string>(alpha) + "_eps_" + boost::lexical_cast<std::string>(eps) + "_file_"
+					+ boost::replace_all_copy(graphInputFile, ".", "-") + ".bin";
+
 
 			cout << "writing to " << glove_input_file << endl;
-			cout << "\tand " << glove_vocab_file << endl;
 
 			FILE* glove_input_file_out = fopen(glove_input_file.c_str(), "w");
-			FILE* glove_vocab_file_out = fopen(glove_vocab_file.c_str(), "w");
 
-			//c.computeFrequenciesIncludingEdgesTheUltimate(alpha, eps, glove_input_file_out, glove_vocab_file_out, true, false);
+//			//c.computeFrequenciesIncludingEdgesTheUltimate(alpha, eps, glove_input_file_out, glove_vocab_file_out, true, false);
 
-			c.computeFrequenciesIncludingEdges(alpha, eps, glove_input_file_out, glove_vocab_file_out, true, false);
+			c.computeFrequenciesIncludingEdges(alpha, eps, glove_input_file_out, false, false);
 
 			fclose(glove_input_file_out);
-			fclose(glove_vocab_file_out);
 		}
 	}
 
