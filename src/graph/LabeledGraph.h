@@ -40,6 +40,10 @@ public:
 	Node(std::string label) : label(label){
 
 	}
+	Node(boost::flyweight<std::string> label) : label(label){
+
+	}
+
 	boost::flyweight<std::string> label;
 	std::vector<Edge> edges;
 };
