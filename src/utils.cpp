@@ -32,17 +32,17 @@ std::shared_ptr<QuickGraph::LabeledGraph> reverseGraph(std::shared_ptr<const Qui
 	std::vector<QuickGraph::Node> & newNodes = newGraph->nodes;
 
 	//add all nodes:
-	newNodes.reserve(baseGraph->nodes.size());
-	for (vector<QuickGraph::Node>::const_iterator iter = originalNodes.begin(); iter != originalNodes.end();) {
+	newNodes.reserve(originalNodes.size());
+	for (vector<QuickGraph::Node>::const_iterator iter = originalNodes.begin(); iter != originalNodes.end(); iter++) {
 		newNodes.emplace_back(iter->label);
 	}
 
 	//add all edges reversed
 
-	for (vector<QuickGraph::Node>::const_iterator oldSrcNode = originalNodes.begin(); oldSrcNode != originalNodes.end();) {
+	for (vector<QuickGraph::Node>::const_iterator oldSrcNode = originalNodes.begin(); oldSrcNode != originalNodes.end(); oldSrcNode++) {
 		const int oldSourceIndex = oldSrcNode - originalNodes.begin();
 		const int newTargetIndex = oldSourceIndex;
-		const std::vector<QuickGraph::Node>::iterator newTargetNode = newNodes.begin() + newTargetIndex;
+		//const std::vector<QuickGraph::Node>::iterator newTargetNode = newNodes.begin() + newTargetIndex;
 
 		std::vector<QuickGraph::Edge> oldEdges = oldSrcNode->edges;
 		for (vector<QuickGraph::Edge>::const_iterator oldEdge = oldEdges.begin(); oldEdge != oldEdges.end(); oldEdge++) {
