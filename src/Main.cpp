@@ -23,13 +23,26 @@ using namespace std;
 
 int main(int argc, char **argv) {
 	try {
-		RDF2CO::performExperiments();
+		RDF2CO::ParameterizedRun::Parameters p;
+		p.graphs.push_back(std::tuple<string, bool, bool> ("368303ALL_MergedMultiline_no-empty-lines_sort-uniq_error-boxer.nt", false, true));
+		UniformWeigher w;
+		p.weighers.push_back(std::pair<GraphWeigher&, GraphWeigher&>(w,w));
+		p.alphas.push_back(0.3);
+		p.epss.push_back(0.00001);
+		p.normalize.push_back(true);
+		p.onlyEntities.push_back(false);
+		RDF2CO::ParameterizedRun::parametrizedUltimateRun(p);
 	} catch (char const* str) {
 		cout << str << endl;
 		throw str;
 	}
 	return 0;
 }
+
+
+
+
+
 
 //int mainRandomWalk(int argc, char **argv) {
 //

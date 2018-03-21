@@ -457,12 +457,14 @@ public:
 	Co_occurenceComputer(const string & inputGraphFileName, string precomputedBCAOrderFile, GraphWeigher& weighingStrategy) {
 		pair<shared_ptr<QuickGraph::LabeledGraph>, unordered_map<string, unsigned int> > graphAndNodeIndex = n3parser::buildRDFGraphIgnoreLiterals(inputGraphFileName);
 		_weightedGraph = graphAndNodeIndex.first;
-		reWeigh(weighingStrategy);
+
 		pair<vector<flyString>, unordered_map<flyString, unsigned int> > predLabelsAndIDs = computePredicateIDs(_weightedGraph);
 		_predGraphIDs = predLabelsAndIDs.second;
 		_predicateLabels = predLabelsAndIDs.first;
 
 		_order = BCAOrder::readBCAOrder(precomputedBCAOrderFile, _weightedGraph->nodes.size());
+
+		this->reWeigh(weighingStrategy);
 	}
 
 	void reWeigh(GraphWeigher& weighingStrategy) {
@@ -619,17 +621,39 @@ private:
 
 public:
 
-	Co_occurenceComputer_Ultimate(const string & inputGraphFileName, GraphWeigher& weighingStrategy, GraphWeigher & reverseWeighingStrategy) {
-		pair<shared_ptr<QuickGraph::LabeledGraph>, unordered_map<string, unsigned int> > graphAndNodeIndex = n3parser::buildRDFGraphIgnoreLiterals(inputGraphFileName);
-		shared_ptr<QuickGraph::LabeledGraph> graph = graphAndNodeIndex.first;
-		_order = BCAOrder::determineBCAcomputeOrder(graph);
-		pair<vector<flyString>, unordered_map<flyString, unsigned int>> predLabelsAndIDs = computePredicateIDs(graph);
+	Co_occurenceComputer_Ultimate(const string & inputGraphFileName, GraphWeigher& weighingStrategy, GraphWeigher & reverseWeighingStrategy, const bool removeLiterals) {
+		pair<shared_ptr<QuickGraph::LabeledGraph>, unordered_map<string, unsigned int> > graphAndNodeIndex = n3parser::buildRDFGraph(inputGraphFileName, removeLiterals);
+		_weightedGraph = graphAndNodeIndex.first;
+
+		pair<vector<flyString>, unordered_map<flyString, unsigned int>> predLabelsAndIDs = computePredicateIDs(_weightedGraph);
 		_predGraphIDs = predLabelsAndIDs.second;
 		_predicateLabels = predLabelsAndIDs.first;
+
+		_order = BCAOrder::determineBCAcomputeOrder(_weightedGraph);
+
 		//reverse graph
-		_weightedReverseGraph = reverseGraph(graph);
+		_weightedReverseGraph = reverseGraph(_weightedGraph);
 		_orderReverse = BCAOrder::determineBCAcomputeOrder(_weightedReverseGraph);
 		this->reWeigh(weighingStrategy, reverseWeighingStrategy);
+	}
+
+	/**
+	 * Carfull using this constructor!! The graph will not be weighted. reweigh has to be called before using the graph.
+	 */
+	Co_occurenceComputer_Ultimate(const string & inputGraphFileName, const bool removeLiterals) {
+		cerr << "now using parser which supports malformed files. This has to be reversed in all co_occurence computers for future use" << endl;
+		pair<shared_ptr<QuickGraph::LabeledGraph>, unordered_map<string, unsigned int> > graphAndNodeIndex = n3parser::buildRDFGraph(inputGraphFileName, removeLiterals);
+		_weightedGraph = graphAndNodeIndex.first;
+
+		pair<vector<flyString>, unordered_map<flyString, unsigned int>> predLabelsAndIDs = computePredicateIDs(_weightedGraph);
+		_predGraphIDs = predLabelsAndIDs.second;
+		_predicateLabels = predLabelsAndIDs.first;
+
+		_order = BCAOrder::determineBCAcomputeOrder(_weightedGraph);
+
+		//reverse graph
+		_weightedReverseGraph = reverseGraph(_weightedGraph);
+		_orderReverse = BCAOrder::determineBCAcomputeOrder(_weightedReverseGraph);
 	}
 
 	void reWeigh(GraphWeigher& weighingStrategy, GraphWeigher & reverseWeighingStrategy) {
@@ -648,83 +672,89 @@ public:
 	 * Outputs the score as a sparse matrix which can be fed to glove.
 	 *
 	 */
-	void computeFrequenciesIncludingEdgesTheUltimate(double bca_alpha, double bca_eps, FILE * glove_input_file_out, FILE * glove_vocab_file_out, bool normalize, bool onlyEntities) {
-		cerr << "Not impleented";
-		throw "noo";
-//		const int infoFrequency = _order.size() > 1000000 ? 100000 : 10000;
-//		unordered_map<int, BCV> bcvForwardCache;
-//		{			//scoping forward
-//			int counter = 0;
-//			for (vector<int>::iterator iter = _order.begin(); iter < _order.end(); iter++) {
-//				const int focusWordGraphID = iter->Val;
-//
-//				if (onlyEntities) {
-//					if (!isEntity(_weightedGraph->GetNI(focusWordGraphID))) {
-//						continue;
-//					}
-//				}
-//				//we only want the side effect of the BCV being added to the cache!
-//				computeBCAIncludingEdgesCached(_weightedGraph, focusWordGraphID, bca_alpha, bca_eps, _predGraphIDs, bcvForwardCache);
-//				counter++;
-//				if ((counter % infoFrequency) == 0) {
-//					cout << currentTime() << "Processed " << counter << "/" << _order.size() << " BCV FORWARD computations " << endl;
-//				}
-//			}
-//		}
-//		{			//scoping backward
-//			int backwardCounter = 0;
-//			unordered_map<int, BCV> bcvBackwardCache;
-//			for (vector<int>::iterator iter = _orderReverse.begin(); iter < _orderReverse.end(); iter++) {
-//				const int focusWordGraphID = iter->Val;
-//
-//				if (onlyEntities) {
-//					if (!isEntity(_weightedReverseGraph->GetNI(focusWordGraphID))) {
-//						continue;
-//					}
-//				}
-//				BCV backwardBCV = computeBCACached(_weightedReverseGraph, focusWordGraphID, bca_alpha, bca_eps, bcvBackwardCache);
-//Note: the previous line contians a bug: this should be the includingedges variant.
-//
-//				//combine with what is in the forward cache
-//				BCV forwardBCV = bcvForwardCache.GetDat(focusWordGraphID);
-//				//remove from forward cache. This is not 100% necessary, but helps ensuring program correctness, and saves a bit of memory. Any forward entry must only be needed once.
-//				bcvForwardCache.DelKey(focusWordGraphID);
-//
-//				forwardBCV.add(backwardBCV);
-//				BCV &combinedBCV = forwardBCV;
-//
-//				if (normalize) {
-//					combinedBCV.removeEntry(focusWordGraphID);
-//					combinedBCV.normalizeInPlace();
-//				}
-//				const int focusWordGloveID = graphIDToGloveID(focusWordGraphID);
-//
-//				for (unordered_map<int, double>::iterator iter = combinedBCV.begin(); iter < combinedBCV.end(); iter++) {
-//					int contextWordGraphID = iter.first;
-//					int contextWordGloveID = graphIDToGloveID(contextWordGraphID);
-//					double freq = iter.second;
-//					CREC crec = CREC { word1:focusWordGloveID, word2:contextWordGloveID, val: freq };
-//					fwrite(&crec, sizeof(CREC), 1, glove_input_file_out);
-//				}
-//				backwardCounter++;
-//				if ((backwardCounter % infoFrequency) == 0) {
-//					cout << currentTime() << "Processed " << backwardCounter << "/" << _order.size() << " BCV BACKWARD computations" << endl;
-//				}
-//			}
-//		}
-//
-//		//still need to write all node labels to the vocab file
-//		for (int i = 0; i < this->_weightedGraph->GetNodes(); i++) {
-//			string nodeLabel = _weightedGraph->GetNDat(i);
-//			fprintf(glove_vocab_file_out, "%s nofr\n", nodeLabel.CStr());
-//		}
-//		//still need to write all predicates to the vocab file
-//
-//		for (vector<string>::iterator it = _predicateLabels.begin(); it < _predicateLabels.end(); it++) {
-//			fprintf(glove_vocab_file_out, "%s nofr\n", it->CStr());
-//		}
-//
+	void computeFrequenciesIncludingEdgesTheUltimate(double bca_alpha, double bca_eps, FILE * glove_input_file_out, bool normalize, bool onlyEntities) {
+		const int infoFrequency = _order.size() > 1000000 ? 100000 : 10000;
+		//unordered_map<int, BCV> bcvForwardCache;
+		//TODO : check whether this size is correct
+		vector<std::shared_ptr<CompactBCV>> bcvForwardCache(_order.size());
+
+		{			//filling the forward cache
+			int counter = 0;
+			for (vector<unsigned int>::iterator iter = _order.begin(); iter < _order.end(); iter++) {
+				const unsigned int focusWordGraphID = *iter;
+
+				if (onlyEntities) {
+					if (!isEntity(this->_weightedGraph, focusWordGraphID)) {
+						continue;
+					}
+				}
+				//we only want the side effect of the BCV being added to the cache!
+				computeBCAIncludingEdgesCached(_weightedGraph, focusWordGraphID, bca_alpha, bca_eps, _predGraphIDs, bcvForwardCache);
+				counter++;
+				if ((counter % infoFrequency) == 0) {
+					cout << currentTime() << "Processed " << counter << "/" << _order.size() << " BCV FORWARD computations " << endl;
+				}
+			}
+		}
+		{			//filling the backward cache and writing comined outcomes to disk. This simultaniously empties the forwardCache to save memory.
+			vector<std::shared_ptr<CompactBCV>> bcvBackwardCache(_order.size());
+			int backwardCounter = 0;
+			for (vector<unsigned int>::iterator iter = _orderReverse.begin(); iter < _orderReverse.end(); iter++) {
+				const unsigned int focusWordGraphID = *iter;
+
+				if (onlyEntities) {
+					if (!isEntity(this->_weightedReverseGraph, focusWordGraphID)) {
+						continue;
+					}
+				}
+				shared_ptr<CompactBCV> backWardBCV = computeBCAIncludingEdgesCached(_weightedReverseGraph, focusWordGraphID, bca_alpha, bca_eps, _predGraphIDs, bcvBackwardCache);
+				backwardCounter++;
+				if ((backwardCounter % infoFrequency) == 0) {
+					cout << currentTime() << "Processed " << backwardCounter << "/" << _order.size() << " BCV BACKWARD computations" << endl;
+				}
+				//combine forward and backward:
+				std::shared_ptr<CompactBCV> compactForwardBCV = bcvForwardCache[focusWordGraphID];
+				//remove from forward cache. This is not 100% necessary, but helps ensuring program correctness, and saves a bit of memory. Any forward entry must only be needed once.
+				bcvForwardCache[focusWordGraphID] = 0;
+
+				BCV forwardBCV(*compactForwardBCV);
+				forwardBCV.add(*backWardBCV);
+
+				BCV &combinedBCV = forwardBCV;
+
+				if (normalize) {
+					combinedBCV.removeEntry(focusWordGraphID);
+					combinedBCV.normalizeInPlace();
+				}
+				const int focusWordGloveID = graphIDToGloveID(focusWordGraphID);
+
+				for (unordered_map<unsigned int, double>::const_iterator iter = combinedBCV.cbegin(); iter != combinedBCV.cend(); iter++) {
+					int contextWordGraphID = iter->first;
+					int contextWordGloveID = graphIDToGloveID(contextWordGraphID);
+					double freq = iter->second;
+					CREC crec = CREC { word1:focusWordGloveID, word2:contextWordGloveID, val: freq };
+					fwrite(&crec, sizeof(CREC), 1, glove_input_file_out);
+				}
+			}
+		}
 	}
+
+	void writeVocabFileIncludingEdges(FILE * glove_vocab_file_out) {
+		//still need to write all node labels to the vocab file
+
+		std::vector<QuickGraph::Node> & nodes = this->_weightedGraph->nodes;
+		for (std::vector<QuickGraph::Node>::iterator iter = nodes.begin(); iter != nodes.end(); iter++) {
+			const string & label = iter->label.get();
+			fprintf(glove_vocab_file_out, "%s nofr\n", label.c_str());
+		}
+
+		//still need to write all predicates to the vocab file
+
+		for (vector<flyString>::iterator it = _predicateLabels.begin(); it < _predicateLabels.end(); it++) {
+			fprintf(glove_vocab_file_out, "%s nofr\n", it->get().c_str());
+		}
+	}
+
 };
 
 //
@@ -816,12 +846,12 @@ void performExperiments() {
 	cerr << "TODO: check the following: at each BCV computation a bit of page rank is dropped. When reused, each time this bit is multiplied. Does this mean that in the end a lot of pagerank is lost?"
 			<< endl;
 	cerr << "enable -NDEBUG for actual runs" << endl;
-	//string graphInputFile = "../../datasets/dbPedia/allData27_30M.nt";
-	//string graphInputFile = "../../datasets/wikidata-simple-statements-10_000000-sample.nt";
+//string graphInputFile = "../../datasets/dbPedia/allData27_30M.nt";
+//string graphInputFile = "../../datasets/wikidata-simple-statements-10_000000-sample.nt";
 
 //string graphInputFile = "SmallTest.nt";
-	//string graphInputFile = "SmallTest9_loop.nt";
-	//string graphInputFile = "SmallTest11_simpleLoop.nt";
+//string graphInputFile = "SmallTest9_loop.nt";
+//string graphInputFile = "SmallTest11_simpleLoop.nt";
 	string graphInputFile = "proteinInteraction.nt";
 	UniformWeigher weigher;
 //two options, if the BCA order has been precomputed:
@@ -844,7 +874,6 @@ void performExperiments() {
 			string glove_input_file = "glove_input_file_out_alpha_" + boost::lexical_cast<std::string>(alpha) + "_eps_" + boost::lexical_cast<std::string>(eps) + "_file_"
 					+ boost::replace_all_copy(graphInputFile, ".", "-") + ".bin";
 
-
 			cout << "writing to " << glove_input_file << endl;
 
 			FILE* glove_input_file_out = fopen(glove_input_file.c_str(), "w");
@@ -856,35 +885,86 @@ void performExperiments() {
 			fclose(glove_input_file_out);
 		}
 	}
-
 }
 
-//void performExperimentsOLD() {
-////	string file = "wikidata-simple-statements-10_000000-sample.nt";
-////string file = "sample-wikidata-terms-fragment.nt";
-////string file = "sample-wikidata-terms.nt";
-//	string file = "../../datasets/dbPedia/allData27_30M.nt";
-////string file = "SmallTest8_multiplePO.nt";
+////The following code was just a test. Never really used.
+//void simpleRun(std::string graphInputFile) {
+//	cerr << "enable -NDEBUG for actual runs" << endl;
 //
-//	FILE* glove_input_file_out = fopen("glove_input_file_out.bin", "w");
-//	FILE* glove_vocab_file_out = fopen("glove_vocab_file_out", "w");
+//	UniformWeigher weigher;
 //
-//	auto BCAOrderFile = "BCAComputeOrder.txt";
-//	BCAOrder::ComputeBCAOrder(file, BCAOrderFile);
+//	co_occurence_computer::Co_occurenceComputer_Ultimate c(graphInputFile, weigher, weigher, true);
 //
-////InversePredicateFrequencyWeigher weigher = InversePredicateFrequencyWeigher();
+//	string glove_vocab_file_out_name = "glove_vocab_file_" + boost::replace_all_copy(graphInputFile, ".", "-") + ".txt";
 //
-////computeFrequenciesPushBCA(file, weigher, outfile);
-////	bool normalize = true;
-////	bool onlyEntities = false;
-////	computeFrequenciesIncludingEdges(file, weigher, 0.80, 0.0039, glove_input_file_out, glove_vocab_file_out, normalize, onlyEntities);
-////computeFrequencies(file, weigher, 0.50, 0.05, glove_input_file_out, glove_vocab_file_out);
-//
-////computeFrequenciesIncludingEdgesTheUltimate(file, weigher, weigher, 0.70, 0.0039, glove_input_file_out, glove_vocab_file_out, normalize);
-//
-//	fclose(glove_input_file_out);
+//	FILE* glove_vocab_file_out = fopen(glove_vocab_file_out_name.c_str(), "w");
+//	c.writeVocabFileIncludingEdges(glove_vocab_file_out);
 //	fclose(glove_vocab_file_out);
-//}
+//	cout << "vocabulary written to " << glove_vocab_file_out_name << endl;
+//
+//	for (double alpha = 0.1; alpha <= 0.5; alpha += 0.1) {
+//		for (double eps = 0.00001; eps <= 0.0001; eps *= 10) {
+//
+//			string glove_input_file = "glove_input_file_out_alpha_" + boost::lexical_cast<std::string>(alpha) + "_eps_" + boost::lexical_cast<std::string>(eps) + "_file_"
+//					+ boost::replace_all_copy(graphInputFile, ".", "-") + ".bin";
+//
+//			cout << "writing to " << glove_input_file << endl;
+//
+//			FILE* glove_input_file_out = fopen(glove_input_file.c_str(), "w");
+//
+////			//c.computeFrequenciesIncludingEdgesTheUltimate(alpha, eps, glove_input_file_out, glove_vocab_file_out, true, false);
+//
+//			c.computeFrequenciesIncludingEdges(alpha, eps, glove_input_file_out, false, false);
+//
+//			fclose(glove_input_file_out);
+//		}
+//	}
 
-}//end RDF2CO
+void ParameterizedRun::parametrizedUltimateRun(Parameters& param) {
+	param.check();
 
+	int outputFileNumber = 0;
+	for (std::vector<std::tuple<std::string, bool, bool>>::const_iterator graphs = param.graphs.begin(); graphs != param.graphs.end(); graphs++) {
+		const std::string graphInputFile = std::get<0>(*graphs);
+		const bool removeLiterals = std::get<1>(*graphs);
+		const bool saveVocabulary = std::get<2>(*graphs);
+
+		co_occurence_computer::Co_occurenceComputer_Ultimate c(graphInputFile, removeLiterals);
+		if (saveVocabulary) {
+			string glove_vocab_file_out_name = "glove_vocab_file_" + boost::replace_all_copy(graphInputFile, ".", "-") + ".txt";
+			FILE* glove_vocab_file_out = fopen(glove_vocab_file_out_name.c_str(), "w");
+			c.writeVocabFileIncludingEdges(glove_vocab_file_out);
+			fclose(glove_vocab_file_out);
+		}
+		string fileNamePART1 = boost::replace_all_copy(graphInputFile, ".", "_") + "-" + (removeLiterals ? "no_literals" : "with_literals");
+
+		for (std::vector<std::pair<GraphWeigher&, GraphWeigher&>>::const_iterator weighers = param.weighers.begin(); weighers != param.weighers.end(); weighers++) {
+			GraphWeigher & forwardWeigher = weighers->first;
+			GraphWeigher & reverseWeigher = weighers->second;
+			c.reWeigh(forwardWeigher, reverseWeigher);
+			string fileNamePART2 = fileNamePART1 + "-forward_" + forwardWeigher.getName() + "-reverse_" + reverseWeigher.getName();
+			for (std::vector<double>::const_iterator alphas = param.alphas.cbegin(); alphas != param.alphas.cend(); alphas++) {
+				double alpha = *alphas;
+				for (std::vector<double>::const_iterator epss = param.epss.cbegin(); epss != param.epss.cend(); epss++) {
+					double eps = *epss;
+					for (std::vector<bool>::const_iterator normalizes = param.normalize.cbegin(); normalizes != param.normalize.cend(); normalizes++) {
+						bool normalize = *normalizes;
+						for (std::vector<bool>::const_iterator onlyEntitiess = param.onlyEntities.cbegin(); onlyEntitiess != param.onlyEntities.cend(); onlyEntitiess++) {
+							bool onlyEntities = *onlyEntitiess;
+
+							//creating filename
+							string outputFile = "glove_input_file-" + fileNamePART2 + "-alpha_" + boost::lexical_cast<std::string>(alpha) + "-eps_" + boost::lexical_cast<std::string>(eps)
+									+ (normalize ? "-normalize_yes" : "-normalize_no") + (onlyEntities ? "-onlyEntities_yes" : "-onlyEntities_no") + ".bin";
+							FILE* glove_input_file_out = fopen(outputFile.c_str(), "w");
+							c.computeFrequenciesIncludingEdgesTheUltimate(alpha, eps, glove_input_file_out, normalize, onlyEntities);
+							fclose(glove_input_file_out);
+							outputFileNumber++;
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+}			//end RDF2CO
