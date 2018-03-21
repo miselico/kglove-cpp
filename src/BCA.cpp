@@ -12,6 +12,12 @@
 
 using namespace std;
 
+BCV::BCV(CompactBCV & from) {
+	for (std::vector<std::pair<unsigned int, double>>::const_iterator iter = from.values.begin(); iter != from.values.begin(); iter++) {
+		this->fixPaint(iter->first, iter->second);
+	}
+}
+
 void BCV::fixPaint(unsigned int ID, double amount) {
 	double startamount = 0;
 	std::unordered_map<unsigned int, double>::iterator it = this->find(ID);
@@ -20,8 +26,12 @@ void BCV::fixPaint(unsigned int ID, double amount) {
 		double newAmount = startamount + amount;
 		this->at(ID) = newAmount;
 	} else {
+#ifdef NDEBUG
+		this->emplace(ID, amount);
+#else
 		auto ret = this->emplace(ID, amount);
 		assert(ret.second);
+#endif
 	}
 }
 
@@ -87,6 +97,14 @@ void BCV::add(const CompactBCV & other) {
 		}
 	}
 }
+
+CompactBCV::CompactBCV(const BCV & bcv) {
+	for (std::unordered_map<unsigned int, double>::const_iterator iter = bcv.cbegin(); iter != bcv.cend(); iter++) {
+		values.emplace_back(iter->first, iter->second);
+	}
+	this->values.shrink_to_fit();
+}
+
 
 class BCAQueue: public MyMaxPriorityQueue<unsigned int> {
 public:
@@ -248,6 +266,7 @@ shared_ptr<CompactBCV> computeBCAIncludingEdgesCached(std::shared_ptr<QuickGraph
 
 		std::shared_ptr<CompactBCV> cached = bcvCache[i];
 
+		//TODO check whether non-filled elements indeed test false.
 		if (cached) {
 			CompactBCV * precomputed = cached.get();
 			//TODO double check this:

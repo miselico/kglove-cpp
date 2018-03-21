@@ -17,6 +17,7 @@
 
 typedef boost::flyweight<std::string> flyString;
 
+class BCV;
 class CompactBCV;
 
 //sparse vector representing the approx pagerank
@@ -28,10 +29,12 @@ public:
 	BCV() {
 
 	}
+
+	BCV(CompactBCV & from);
 	std::string toStringWithOnlyNodeLabels(const std::shared_ptr<QuickGraph::LabeledGraph> network);
 	void fixPaint(unsigned int ID, double amount);
 	void removeEntry(unsigned int ID);
-	//This function normalizes the vector such that pageranks add up to 1 IN PLACE
+//This function normalizes the vector such that pageranks add up to 1 IN PLACE
 	void normalizeInPlace();
 	void add(const BCV & other);
 	void add(const CompactBCV & other);
@@ -40,15 +43,10 @@ public:
 class CompactBCV {
 public:
 	std::vector<std::pair<unsigned int, double>> values;
-
-	CompactBCV(const BCV & bcv) {
-		for (std::unordered_map<unsigned int, double>::const_iterator iter = bcv.cbegin(); iter != bcv.cend(); iter++) {
-			values.emplace_back(iter->first, iter->second);
-		}
-		this->values.shrink_to_fit();
-	}
-
+	CompactBCV(const BCV & bcv);
 };
+
+
 
 BCV computeBCA(std::shared_ptr<QuickGraph::LabeledGraph> graph, unsigned int b_ID, double alpha, double eps);
 
