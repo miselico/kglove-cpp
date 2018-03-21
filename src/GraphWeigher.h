@@ -23,46 +23,74 @@ public:
 
 	}
 	virtual void weigh(std::shared_ptr<QuickGraph::LabeledGraph>) const = 0;
+
+	virtual std::string getName() const = 0;
 };
 
 class UniformWeigher: public GraphWeigher {
 public:
 	virtual void weigh(std::shared_ptr<QuickGraph::LabeledGraph>) const;
+
+	virtual std::string getName() const {
+		return "UniformWeigher";
+	}
 };
 
 class InversePredicateFrequencyWeigher: public GraphWeigher {
 public:
 	virtual void weigh(std::shared_ptr<QuickGraph::LabeledGraph>) const;
+
+	virtual std::string getName() const {
+		return "InversePredicateFrequencyWeigher";
+	}
 };
 
 class PredicateFrequencyWeigher: public GraphWeigher {
 public:
 	virtual void weigh(std::shared_ptr<QuickGraph::LabeledGraph>) const;
+	virtual std::string getName() const {
+		return "PredicateFrequencyWeigher";
+	}
 };
 
 class ObjectFrequencyWeigher: public GraphWeigher {
 public:
 	virtual void weigh(std::shared_ptr<QuickGraph::LabeledGraph>) const;
+	virtual std::string getName() const {
+		return "ObjectFrequencyWeigher";
+	}
 };
 
 class InverseObjectFrequencyWeigher: public GraphWeigher {
 public:
 	virtual void weigh(std::shared_ptr<QuickGraph::LabeledGraph>) const;
+	virtual std::string getName() const {
+		return "ObjectFrequencyWeigher";
+	}
 };
 
 class PredicateObjectFrequencyWeigher: public GraphWeigher {
 public:
 	virtual void weigh(std::shared_ptr<QuickGraph::LabeledGraph>) const;
+	virtual std::string getName() const {
+		return "PredicateObjectFrequencyWeigher";
+	}
 };
 
 class InversePredicateObjectFrequencyWeigher: public GraphWeigher {
 public:
 	virtual void weigh(std::shared_ptr<QuickGraph::LabeledGraph>) const;
+	virtual std::string getName() const {
+		return "InversePredicateObjectFrequencyWeigher";
+	}
 };
 
 class InverseObjectFrequencyWeigherSplitDown: public GraphWeigher {
 public:
 	virtual void weigh(std::shared_ptr<QuickGraph::LabeledGraph>) const;
+	virtual std::string getName() const {
+		return "InverseObjectFrequencyWeigherSplitDown";
+	}
 };
 
 /**
@@ -87,6 +115,10 @@ public:
 	}
 
 	virtual void weigh(std::shared_ptr<QuickGraph::LabeledGraph>) const;
+
+	virtual std::string getName() const {
+		return "Pushdownweigher";
+	}
 };
 
 /**
@@ -111,6 +143,10 @@ public:
 	}
 
 	virtual void weigh(std::shared_ptr<QuickGraph::LabeledGraph>) const;
+
+	virtual std::string getName() const {
+		return "Splitdownweigher";
+	}
 };
 
 #endif /* GRAPHWEIGHER_HA_ */
