@@ -238,6 +238,26 @@ void PushDownWeigher::weigh(std::shared_ptr<QuickGraph::LabeledGraph> baseGraph)
 	normalize(baseGraph);
 }
 
+void PushDownWeigherMap::weigh(std::shared_ptr<QuickGraph::LabeledGraph> baseGraph) const {
+	vector<QuickGraph::Node> & nodes = baseGraph->nodes;
+
+	for (std::vector<QuickGraph::Node>::iterator iter = nodes.begin(); iter != nodes.end(); iter++) {
+		QuickGraph::Node & theNode = *iter;
+		std::unordered_map<string, double>::const_iterator findIter = this->nodeWeights.find(theNode.label);
+		double weight;
+		if (findIter == this->nodeWeights.cend()) {
+			weight = this->defaultWeight;
+		} else {
+			weight = findIter->second;
+		}
+		std::vector<QuickGraph::Edge> & edges = theNode.edges;
+		for (std::vector<QuickGraph::Edge>::iterator edge = edges.begin(); edge != edges.end(); edge++) {
+			edge->weight = weight;
+		}
+	}
+	normalize(baseGraph);
+}
+
 void SplitDownWeigher::weigh(std::shared_ptr<QuickGraph::LabeledGraph> baseGraph) const {
 	vector<QuickGraph::Node> & nodes = baseGraph->nodes;
 	assert(nodes.size() == this->nodeWeights.size());

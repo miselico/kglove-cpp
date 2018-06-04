@@ -11,6 +11,10 @@
 
 #include <utility>
 #include <unordered_map>
+#include <boost/algorithm/string/split.hpp>
+#include <boost/algorithm/string/classification.hpp>
+#include <fstream>
+#include <boost/lexical_cast.hpp>
 
 using namespace std;
 
@@ -21,12 +25,47 @@ using namespace std;
 //	cout << g.first->nodes.size() << endl;
 //}
 
+unordered_map<string, double> readDBPediaPageRanks(string tsvFile) {
+	unordered_map<string, double> ranks;
+
+	ifstream infile(tsvFile);
+
+	if (!infile.is_open()) {
+		// error! maybe the file doesn't exist.
+		cerr << "Input file " << tsvFile << " not found, exiting!!" << endl;
+		exit(7);
+	}
+
+	string line;
+
+	while (std::getline(infile, line)) {
+		if (line.find_first_not_of(' ') == std::string::npos) {
+			continue;
+		}
+		if (line.find_first_of('#') == 0) {
+			//comment
+			continue;
+		}
+
+		vector<string> SplitVec; // #2: Search for tokens
+		boost::split(SplitVec, line, boost::is_any_of("\t"), boost::token_compress_off);
+		string resource = "<" + SplitVec[0] + ">";
+		double rank = boost::lexical_cast<double>(SplitVec[1]);
+
+		ranks[resource] = rank;
+	}
+	infile.close();
+	return ranks;
+}
+
 int main(int argc, char **argv) {
 	try {
 		RDF2CO::ParameterizedRun::Parameters p;
-		p.graphs.push_back(std::tuple<string, bool, bool> ("368303ALL_MergedMultiline_no-empty-lines_sort-uniq_error-boxer.nt", false, true));
-		UniformWeigher w;
-		p.weighers.push_back(std::pair<GraphWeigher&, GraphWeigher&>(w,w));
+		//p.graphs.push_back(std::tuple<string, bool, bool>("368303ALL_MergedMultiline_no-empty-lines_sort-uniq_error-boxer.nt", false, true));
+		p.graphs.push_back(std::tuple<string, bool, bool>("allData.nt", true, true));
+		//UniformWeigher w;
+		PushDownWeigherMap w(readDBPediaPageRanks("pagerank_en_2016-04.tsv"), 0.2);
+		p.weighers.push_back(std::pair<GraphWeigher&, GraphWeigher&>(w, w));
 		p.alphas.push_back(0.3);
 		p.epss.push_back(0.00001);
 		p.normalize.push_back(true);
@@ -38,11 +77,6 @@ int main(int argc, char **argv) {
 	}
 	return 0;
 }
-
-
-
-
-
 
 //int mainRandomWalk(int argc, char **argv) {
 //

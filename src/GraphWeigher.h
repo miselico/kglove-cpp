@@ -122,6 +122,36 @@ public:
 };
 
 /**
+ * Assigns to each inedge the weight assigned to the nodes.
+ * Nodes which are not in the nodeWeights provided get assigned the defaultWeight
+ * Then all weights are normalized
+ *
+ *
+ * First, each in edge gets the weight of the node
+ * Then, each weight on the outedges of each node is normalized such that they sum to 1.
+ *
+ */
+class PushDownWeigherMap: public GraphWeigher {
+	const std::unordered_map<std::string, double> nodeWeights;
+	const double defaultWeight;
+
+public:
+	/**
+	 * All weights must be in the vector
+	 */
+	PushDownWeigherMap(const std::unordered_map<std::string, double> & nodeWeights, double defaultWeight) :
+			nodeWeights(nodeWeights), defaultWeight(defaultWeight) {
+	}
+
+	virtual void weigh(std::shared_ptr<QuickGraph::LabeledGraph>) const;
+
+	virtual std::string getName() const {
+		return "PushdownweigherMap";
+	}
+};
+
+
+/**
  * Assigns to each inedge the weight assigned to the nodes divided by the number of in edges.
  * Nodes which are not in the nodeWeights provided get assigned the defaultWeight divided by #inedge
  * Then all weights are normalized

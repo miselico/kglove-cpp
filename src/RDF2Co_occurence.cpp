@@ -5,32 +5,31 @@
  *      Author: cochez
  */
 
-#include <iostream>
-#include <fstream>
-#include <string>
-#include <tuple>
-#include <algorithm>
-#include <unordered_map>
-#include "nTripleParser.h"
+#include "RDF2Co_occurence.h"
 
-#include "MyMaxPriorityQueue.h"
-
-#include "boost/dynamic_bitset.hpp"
-#include "boost/graph/graph_traits.hpp"
-#include <boost/graph/graph_traits.hpp>
-#include <boost/graph/adjacency_list.hpp>
-#include "boost/lexical_cast.hpp"
-#include <boost/flyweight.hpp>
 #include <boost/algorithm/string/replace.hpp>
-
-//#include <boost/graph/topological_sort.hpp>
+#include <boost/dynamic_bitset/dynamic_bitset.hpp>
+#include <boost/flyweight/flyweight.hpp>
+#include <boost/lexical_cast.hpp>
+#include <boost/unordered/unordered_set.hpp>
+#include <algorithm>
+#include <cassert>
+#include <cstdio>
+#include <fstream>
+#include <iostream>
+#include <iterator>
+#include <memory>
+#include <unordered_map>
+#include <unordered_set>
 #include <utility>                   // for std::pair
-#include <assert.h>
+#include <vector>
+
+#include "BCA.h"
+#include "graph/LabeledGraph.h"
+#include "MyMaxPriorityQueue.h"
+#include "nTripleParser.h"
 #include "PrintTime.h"
 #include "utils.h"
-#include "GraphWeigher.h"
-#include "BCA.h"
-#include "RDF2Co_occurence.h"
 
 using namespace std;
 
