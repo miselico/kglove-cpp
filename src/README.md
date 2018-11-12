@@ -2,6 +2,10 @@
 
 This repository contains code related to embedding entities in RDF graphs into a vector space.
 
+Compile Command:
+```
+g++ -O3 *.cpp -o main -pthread -lboost_program_options
+```
 
 Overview of files:
 =====================
