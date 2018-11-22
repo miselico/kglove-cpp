@@ -931,6 +931,9 @@ void ParameterizedRun::parametrizedUltimateRun(Parameters& param) {
 		if (saveVocabulary) {
 			string glove_vocab_file_out_name = "glove_vocab_file_" + boost::replace_all_copy(graphInputFile, ".", "-") + ".txt";
 			FILE* glove_vocab_file_out = fopen(glove_vocab_file_out_name.c_str(), "w");
+			if (!glove_vocab_file_out) {
+				throw "vocab file could not be opened";
+			}
 			c.writeVocabFileIncludingEdges(glove_vocab_file_out);
 			fclose(glove_vocab_file_out);
 		}
@@ -954,6 +957,9 @@ void ParameterizedRun::parametrizedUltimateRun(Parameters& param) {
 							string outputFile = "glove_input_file-" + fileNamePART2 + "-alpha_" + boost::lexical_cast<std::string>(alpha) + "-eps_" + boost::lexical_cast<std::string>(eps)
 									+ (normalize ? "-normalize_yes" : "-normalize_no") + (onlyEntities ? "-onlyEntities_yes" : "-onlyEntities_no") + ".bin";
 							FILE* glove_input_file_out = fopen(outputFile.c_str(), "w");
+							if (!glove_input_file_out) {
+								throw "coocurence file could not be written to";
+							}
 							c.computeFrequenciesIncludingEdgesTheUltimate(alpha, eps, glove_input_file_out, normalize, onlyEntities);
 							fclose(glove_input_file_out);
 							outputFileNumber++;
