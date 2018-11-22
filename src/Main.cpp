@@ -60,11 +60,17 @@ unordered_map<string, double> readDBPediaPageRanks(string tsvFile) {
 
 int main(int argc, char **argv) {
 	try {
+		//char const * fileName = "dbpedia_base64_mtr100_mte100-train.nt";
+		char const * fileName = "freebase_mtr100_mte100-test.nt";
+		if (argc > 1){
+			fileName = argv[1];
+		}
+
 		RDF2CO::ParameterizedRun::Parameters p;
 		//p.graphs.push_back(std::tuple<string, bool, bool>("368303ALL_MergedMultiline_no-empty-lines_sort-uniq_error-boxer.nt", false, true));
-		p.graphs.push_back(std::tuple<string, bool, bool>("allData.nt", true, true));
-		//UniformWeigher w;
-		PushDownWeigherMap w(readDBPediaPageRanks("pagerank_en_2016-04.tsv"), 0.2);
+		p.graphs.push_back(std::tuple<string, bool, bool>(fileName, true, true));
+		UniformWeigher w;
+		//PushDownWeigherMap w(readDBPediaPageRanks("pagerank_en_2016-04.tsv"), 0.2);
 		p.weighers.push_back(std::pair<GraphWeigher&, GraphWeigher&>(w, w));
 		p.alphas.push_back(0.3);
 		p.epss.push_back(0.00001);

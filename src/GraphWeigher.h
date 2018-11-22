@@ -65,7 +65,7 @@ class InverseObjectFrequencyWeigher: public GraphWeigher {
 public:
 	virtual void weigh(std::shared_ptr<QuickGraph::LabeledGraph>) const;
 	virtual std::string getName() const {
-		return "ObjectFrequencyWeigher";
+		return "InverseObjectFrequencyWeigher";
 	}
 };
 

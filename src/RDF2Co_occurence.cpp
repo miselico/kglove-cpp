@@ -640,7 +640,6 @@ public:
 	 * Carfull using this constructor!! The graph will not be weighted. reweigh has to be called before using the graph.
 	 */
 	Co_occurenceComputer_Ultimate(const string & inputGraphFileName, const bool removeLiterals) {
-		cerr << "now using parser which supports malformed files. This has to be reversed in all co_occurence computers for future use" << endl;
 		pair<shared_ptr<QuickGraph::LabeledGraph>, unordered_map<string, unsigned int> > graphAndNodeIndex = n3parser::buildRDFGraph(inputGraphFileName, removeLiterals);
 		_weightedGraph = graphAndNodeIndex.first;
 

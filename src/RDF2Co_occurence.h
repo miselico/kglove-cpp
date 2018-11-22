@@ -31,6 +31,13 @@ public:
 	std::vector<bool> onlyEntities;
 
 	void check() {
+		for (auto graph : graphs) {
+			const std::string graphInputFile = std::get<0>(graph);
+			if (graphInputFile.find('/') != std::string::npos) {
+				throw "Input path cannot contain '/'.";
+			}
+		}
+
 		if (!(graphs.size() > 0)) {
 			throw "no graphs";
 		}
