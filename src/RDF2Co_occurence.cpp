@@ -11,7 +11,6 @@
 #include <boost/dynamic_bitset/dynamic_bitset.hpp>
 #include <boost/flyweight/flyweight.hpp>
 #include <boost/lexical_cast.hpp>
-#include <boost/unordered/unordered_set.hpp>
 #include <algorithm>
 #include <cassert>
 #include <cstdio>
@@ -31,7 +30,7 @@
 #include "PrintTime.h"
 #include "utils.h"
 
-using namespace std;
+//using namespace std;
 
 typedef boost::flyweight<string> flyString;
 
@@ -126,8 +125,8 @@ public:
 			for (auto originalEdge = originalNode->edges.begin(); originalEdge < originalNode->edges.end(); originalEdge++) {
 				int dst = originalEdge->targetIndex;
 				if (src != dst) {
-					boost::unordered_set<Node*>::value_type sourceNode = &(*this)[src];
-					boost::unordered_set<Node*>::value_type destinationNode = &(*this)[dst];
+					std::unordered_set<Node*>::value_type sourceNode = &(*this)[src];
+					std::unordered_set<Node*>::value_type destinationNode = &(*this)[dst];
 
 					//std::pair<boost::unordered::iterator_detail::c_iterator<boost::unordered::detail::ptr_node<Node*> >, bool> a;
 					bool inserted;
@@ -190,7 +189,7 @@ vector<unsigned int> determineBCAcomputeOrder(std::shared_ptr<const QuickGraph::
 				zeroOutDegrees.setTrueAndRecord((*dependant)->ID);
 			}
 			//start removing already
-			boost::unordered_set<Node*>::value_type toBeRemovedAdress = &toBeRemoved;
+			std::unordered_set<Node*>::value_type toBeRemovedAdress = &toBeRemoved;
 			(*dependant)->outedgeDestination.erase(toBeRemovedAdress);
 		}
 		//finalize, delete node
@@ -355,6 +354,10 @@ typedef struct cooccur_rec {
 	int word1;
 	int word2;
 	real val;
+	cooccur_rec(int word1, int word2, real val) :
+			word1(word1), word2(word2), val(val) {
+
+	}
 } CREC;
 
 /**
@@ -397,8 +400,8 @@ static unsigned int graphIDToGloveID(unsigned int graphID) {
  *
  * The used IDs range from graph.Nodes() till graph.Nodes+(numberOfUniquePredicates=returnValue.size()) exclusive
  */
-static pair<vector<flyString>, unordered_map<flyString, unsigned int>> computePredicateIDs(shared_ptr<QuickGraph::LabeledGraph> graph) {
-	unordered_map<flyString, unsigned int> preds;
+static pair<vector<flyString>, std::unordered_map<flyString, unsigned int>> computePredicateIDs(shared_ptr<QuickGraph::LabeledGraph> graph) {
+	std::unordered_map<flyString, unsigned int> preds;
 	vector<flyString> labels;
 	unsigned int currentID = graph->nodes.size();
 
@@ -515,7 +518,7 @@ public:
 						int contextWordGraphID = iter->first;
 						int contextWordGloveID = graphIDToGloveID(contextWordGraphID);
 						double freq = iter->second;
-						CREC crec = CREC { word1:focusWordGloveID, word2:contextWordGloveID, val: freq / totalSum };
+						CREC crec = CREC(focusWordGloveID, contextWordGloveID, freq / totalSum);
 						//CREC crec = CREC { word1:contextWordGloveID, word2:focusWordGloveID, val: freq };
 						fwrite(&crec, sizeof(CREC), 1, glove_input_file_out);
 					}
@@ -527,7 +530,7 @@ public:
 					int contextWordGraphID = iter->first;
 					int contextWordGloveID = graphIDToGloveID(contextWordGraphID);
 					double freq = iter->second;
-					CREC crec = CREC { word1:focusWordGloveID, word2:contextWordGloveID, val: freq };
+					CREC crec = CREC(focusWordGloveID, contextWordGloveID, freq);
 					//CREC crec = CREC { word1:contextWordGloveID, word2:focusWordGloveID, val: freq };
 					fwrite(&crec, sizeof(CREC), 1, glove_input_file_out);
 				}
@@ -589,7 +592,7 @@ public:
 				int contextWordGraphID = iter->first;
 				int contextWordGloveID = graphIDToGloveID(contextWordGraphID);
 				double freq = iter->second;
-				CREC crec = CREC { word1:focusWordGloveID, word2:contextWordGloveID, val: freq };
+				CREC crec = CREC(focusWordGloveID, contextWordGloveID, freq);
 				fwrite(&crec, sizeof(CREC), 1, glove_input_file_out);
 			}
 			counter++;
@@ -726,11 +729,11 @@ public:
 				}
 				const int focusWordGloveID = graphIDToGloveID(focusWordGraphID);
 
-				for (unordered_map<unsigned int, double>::const_iterator iter = combinedBCV.cbegin(); iter != combinedBCV.cend(); iter++) {
+				for (std::unordered_map<unsigned int, double>::const_iterator iter = combinedBCV.cbegin(); iter != combinedBCV.cend(); iter++) {
 					int contextWordGraphID = iter->first;
 					int contextWordGloveID = graphIDToGloveID(contextWordGraphID);
 					double freq = iter->second;
-					CREC crec = CREC { word1:focusWordGloveID, word2:contextWordGloveID, val: freq };
+					CREC crec = CREC(focusWordGloveID, contextWordGloveID, freq);
 					fwrite(&crec, sizeof(CREC), 1, glove_input_file_out);
 				}
 			}
