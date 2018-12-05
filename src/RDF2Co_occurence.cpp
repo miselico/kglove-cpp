@@ -704,7 +704,8 @@ public:
 				const unsigned int focusWordGraphID = *iter;
 
 				if (onlyEntities) {
-					if (!isEntity(this->_weightedReverseGraph, focusWordGraphID)) {
+					//This needs to be the original graph! The reversed graph does not have the information about what are entities!
+					if (!isEntity(this->_weightedGraph, focusWordGraphID)) {
 						continue;
 					}
 				}
