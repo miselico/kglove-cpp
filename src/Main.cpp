@@ -99,7 +99,8 @@ int main(int argc, char **argv) {
 		("only-entities", po::bool_switch()->default_value(false), "Include only the entities of the graph")
 		("alpha,a", po::value<float>()->default_value(0.3), "Alpha of the BCA Algorithm")
 		("epsilon,e", po::value<float>()->default_value(0.00001),"Epsilon of the BCA Algorithm")
-		("weigher,w", po::value<std::string>()->default_value("PushDownWeigherMap"), "Choose Weigher")
+		("weigher-forward,f", po::value<std::string>()->default_value("PushDownWeigherMap"), "Choose Weigher")
+		("weigher-backward,b", po::value<std::string>()->default_value("PushDownWeigherMap"), "Choose Weigher")
 		;
 	po::positional_options_description p;
 	p.add("dataset", -1);
@@ -121,15 +122,17 @@ int main(int argc, char **argv) {
 	std::cout << "dataset: " << vm["dataset"].as<std::string>() << std::endl;
 	std::cout << "alpha: " << vm["alpha"].as<float>() << std::endl;
 	std::cout << "epsilon: " << vm["epsilon"].as<float>() << std::endl;
-	std::cout << "weigher: " << vm["weigher"].as<std::string>() << std::endl;
+	std::cout << "weigher forward: " << vm["weigher-forward"].as<std::string>() << std::endl;
+	std::cout << "weigher backward: " << vm["weigher-backward"].as<std::string>() << std::endl;
 
 	try {
 		RDF2CO::ParameterizedRun::Parameters p;
 		//p.graphs.push_back(std::tuple<std::string, bool, bool>("368303ALL_MergedMultiline_no-empty-lines_sort-uniq_error-boxer.nt", false, true));
 		p.graphs.push_back(std::tuple<std::string, bool, bool>(vm["dataset"].as<std::string>(), vm["remove-literals"].as<bool>(), vm["store-vocab"].as<bool>()));
 		//UniformWeigher w;
-		std::unique_ptr<GraphWeigher> w(std::move(GetWeigherPtr(vm["weigher"].as<std::string>())));
-		p.weighers.push_back(std::pair<GraphWeigher&, GraphWeigher&>(*w, *w));
+		std::unique_ptr<GraphWeigher> wf(std::move(GetWeigherPtr(vm["weigher-forward"].as<std::string>())));
+		std::unique_ptr<GraphWeigher> wb(std::move(GetWeigherPtr(vm["weigher-backward"].as<std::string>())));
+		p.weighers.push_back(std::pair<GraphWeigher&, GraphWeigher&>(*wf, *wb));
 		p.alphas.push_back(vm["alpha"].as<float>());
 		p.epss.push_back(vm["epsilon"].as<float>());
 		p.normalize.push_back(vm["normalize"].as<bool>());
