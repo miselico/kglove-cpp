@@ -60,43 +60,44 @@ unordered_map<string, double> readDBPediaPageRanks(string tsvFile) {
 	return ranks;
 }
 
+//int main(int argc, char **argv) {
+//	try {
+//		//char const * fileName = "dbpedia_base64_mtr100_mte100-train.nt";
+//		char const * fileName = "freebase_mtr100_mte100-test.nt";
+//		if (argc > 1) {
+//			fileName = argv[1];
+//		}
+//		cout << "running2" << endl;
+//		pair<shared_ptr<QuickGraph::LabeledGraph>, unordered_map<string, unsigned int> > graphAndNodeIndex = n3parser::buildRDFGraph(fileName, true);
+//		std::shared_ptr<QuickGraph::LabeledGraph> weightedGraph = graphAndNodeIndex.first;
+//
+//		UniformWeigher w;
+//		w.weigh(weightedGraph);
+//
+//		std::vector<QuickGraph::Node> & nodes = weightedGraph->nodes;
+//		for (std::vector<QuickGraph::Node>::iterator nodeI = nodes.begin(); nodeI != nodes.end(); nodeI++) {
+//			boost::flyweight<std::string> subject = nodeI->label;
+//			std::vector<QuickGraph::Edge> & edges = nodeI->edges;
+//			for (std::vector<QuickGraph::Edge>::iterator edgeI = edges.begin(); edgeI != edges.end(); edgeI++) {
+//				boost::flyweight<std::string> predicate = edgeI->label;
+//				boost::flyweight<std::string> object = nodes[edgeI->targetIndex].label;
+//				long double weight = edgeI->weight;
+//				std::cout << subject << ' ' << predicate << ' ' << object << ' ' << weight << std::endl;
+//			}
+//		}
+//
+//	} catch (char const* str) {
+//		cout << str << endl;
+//		throw str;
+//	}
+//	return 0;
+//}
+
 int main(int argc, char **argv) {
 	try {
 		//char const * fileName = "dbpedia_base64_mtr100_mte100-train.nt";
-		char const * fileName = "freebase_mtr100_mte100-test.nt";
-		if (argc > 1) {
-			fileName = argv[1];
-		}
-		cout << "running2" << endl;
-		pair<shared_ptr<QuickGraph::LabeledGraph>, unordered_map<string, unsigned int> > graphAndNodeIndex = n3parser::buildRDFGraph(fileName, true);
-		std::shared_ptr<QuickGraph::LabeledGraph> weightedGraph = graphAndNodeIndex.first;
-
-		UniformWeigher w;
-		w.weigh(weightedGraph);
-
-		std::vector<QuickGraph::Node> & nodes = weightedGraph->nodes;
-		for (std::vector<QuickGraph::Node>::iterator nodeI = nodes.begin(); nodeI != nodes.end(); nodeI++) {
-			boost::flyweight<std::string> subject = nodeI->label;
-			std::vector<QuickGraph::Edge> & edges = nodeI->edges;
-			for (std::vector<QuickGraph::Edge>::iterator edgeI = edges.begin(); edgeI != edges.end(); edgeI++) {
-				boost::flyweight<std::string> predicate = edgeI->label;
-				boost::flyweight<std::string> object = nodes[edgeI->targetIndex].label;
-				long double weight = edgeI->weight;
-				std::cout << subject << ' ' << predicate << ' ' << object << ' ' << weight << std::endl;
-			}
-		}
-
-	} catch (char const* str) {
-		cout << str << endl;
-		throw str;
-	}
-	return 0;
-}
-
-int mainForKGlove(int argc, char **argv) {
-	try {
-		//char const * fileName = "dbpedia_base64_mtr100_mte100-train.nt";
-		char const * fileName = "freebase_mtr100_mte100-test.nt";
+//		char const * fileName = "freebase_mtr100_mte100-test.nt";
+		char const * fileName = "SmallTest4.nt";
 		if (argc > 1) {
 			fileName = argv[1];
 		}

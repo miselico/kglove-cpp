@@ -127,7 +127,7 @@ void normalize(std::shared_ptr<QuickGraph::LabeledGraph> unbalanced) {
 
 } //and anonymous namespace helpers
 
-void setValueToOne(QuickGraph::LabeledGraph & baseGraph, QuickGraph::Edge & edge) {
+void setValueToOne(QuickGraph::LabeledGraph & /* baseGraph */, QuickGraph::Edge & edge) {
 	edge.weight = 1;
 }
 
@@ -147,7 +147,7 @@ public:
 			weights(weights) {
 
 	}
-	void operator()(QuickGraph::LabeledGraph & baseGraph, QuickGraph::Edge & edge) {
+	void operator()(QuickGraph::LabeledGraph & /*baseGraph*/, QuickGraph::Edge & edge) {
 		double newWeight = this->weights.at(edge.label);
 		edge.weight = newWeight;
 	}

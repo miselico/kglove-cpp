@@ -9,12 +9,6 @@
 #define UTILS_HA_
 
 #include <string>
-#include "graph/LabeledGraph.h"
-
-//template<class NodeData, class EdgeData>
-//TPt<TNodeEdgeNet<NodeData, EdgeData> > reverseGraph(TPt<TNodeEdgeNet<NodeData, EdgeData> > baseGraph);
-
-std::shared_ptr<QuickGraph::LabeledGraph> reverseGraph(std::shared_ptr<const QuickGraph::LabeledGraph> baseGraph);
 
 static std::string RDF_TYPE("<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>");
 static std::string OWL_THING("<http://www.w3.org/2002/07/owl#Thing>");
@@ -26,5 +20,26 @@ public:
 		return std::hash<T>()(x.first) ^ std::hash<U>()(x.second);
 	}
 };
+
+
+//the following is taken from by http://stackoverflow.com/a/16358264
+
+#include <iostream>
+#include <ctime>
+
+inline std::string currentTime() {
+	time_t rawtime;
+	struct tm * timeinfo;
+	char buffer[80];
+
+	time(&rawtime);
+	timeinfo = localtime(&rawtime);
+
+	strftime(buffer, sizeof(buffer), "%Y-%m-%d %I:%M:%S ", timeinfo);
+	std::string str(buffer);
+
+	return str;
+
+}
 
 #endif /* UTILS_HA_ */

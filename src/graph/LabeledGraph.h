@@ -11,10 +11,11 @@
 #include <vector>
 #include <string>
 #include <boost/flyweight.hpp>
+#include <memory>
 
 namespace QuickGraph {
 
-//fprward decl
+//forward decl
 class Node;
 
 class Edge {
@@ -77,17 +78,9 @@ public:
 
 };
 
-//class ImmutableLabeledGraph {
-//private:
-//	vector<Node> nodes;
-//public:
-//	ImmutableLabeledGraph(const LabeledGraph &);
-//	ImmutableLabeledGraph(const ImmutableLabeledGraph &);
-//	virtual ~ImmutableLabeledGraph();
-//
-//};
+std::shared_ptr<QuickGraph::LabeledGraph> reverseGraph(std::shared_ptr<const QuickGraph::LabeledGraph> baseGraph);
 
-}
+} // end namespace QuickGraph
 
 #endif /* GRAPH_LABELEDGRAPH_H_ */
 

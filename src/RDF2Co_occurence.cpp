@@ -27,12 +27,12 @@
 #include "graph/LabeledGraph.h"
 #include "MyMaxPriorityQueue.h"
 #include "nTripleParser.h"
-#include "PrintTime.h"
 #include "utils.h"
 
-//using namespace std;
 
-typedef boost::flyweight<string> flyString;
+typedef boost::flyweight<std::string> flyString;
+
+using namespace std;
 
 namespace BCAOrder {
 
@@ -72,7 +72,7 @@ public:
 };
 
 //does the vector contain all numbers from 0 till all.size()-1 ?
-bool allNumbersIn(vector<unsigned int> all) {
+bool allNumbersIn(std::vector<unsigned int> all) {
 	std::sort(all.begin(), all.end());
 	for (unsigned int i = 0; i < all.size(); i++) {
 		if (all[i] != i) {
@@ -634,7 +634,7 @@ public:
 		_order = BCAOrder::determineBCAcomputeOrder(_weightedGraph);
 
 		//reverse graph
-		_weightedReverseGraph = reverseGraph(_weightedGraph);
+		_weightedReverseGraph = QuickGraph::reverseGraph(_weightedGraph);
 		_orderReverse = BCAOrder::determineBCAcomputeOrder(_weightedReverseGraph);
 		this->reWeigh(weighingStrategy, reverseWeighingStrategy);
 	}
@@ -653,7 +653,7 @@ public:
 		_order = BCAOrder::determineBCAcomputeOrder(_weightedGraph);
 
 		//reverse graph
-		_weightedReverseGraph = reverseGraph(_weightedGraph);
+		_weightedReverseGraph = QuickGraph::reverseGraph(_weightedGraph);
 		_orderReverse = BCAOrder::determineBCAcomputeOrder(_weightedReverseGraph);
 	}
 
