@@ -6,7 +6,6 @@
  */
 
 #include "BCA.h"
-//#include "doublePriorityQueue.h"
 #include <iostream>
 #include "MyMaxPriorityQueue.h"
 

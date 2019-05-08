@@ -1,8 +1,6 @@
 /*
  * ntripleParser.cpp
  *
- * This is a rudimntary parser for n-triples. It does not properly check for errors on the input, so make sure to feed proper n-triples.
- *
  *  Created on: Nov 23, 2016
  *      Author: cochez
  *

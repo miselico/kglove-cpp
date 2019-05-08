@@ -889,38 +889,6 @@ void performExperiments() {
 	}
 }
 
-////The following code was just a test. Never really used.
-//void simpleRun(std::string graphInputFile) {
-//	cerr << "enable -NDEBUG for actual runs" << endl;
-//
-//	UniformWeigher weigher;
-//
-//	co_occurence_computer::Co_occurenceComputer_Ultimate c(graphInputFile, weigher, weigher, true);
-//
-//	string glove_vocab_file_out_name = "glove_vocab_file_" + boost::replace_all_copy(graphInputFile, ".", "-") + ".txt";
-//
-//	FILE* glove_vocab_file_out = fopen(glove_vocab_file_out_name.c_str(), "w");
-//	c.writeVocabFileIncludingEdges(glove_vocab_file_out);
-//	fclose(glove_vocab_file_out);
-//	cout << "vocabulary written to " << glove_vocab_file_out_name << endl;
-//
-//	for (double alpha = 0.1; alpha <= 0.5; alpha += 0.1) {
-//		for (double eps = 0.00001; eps <= 0.0001; eps *= 10) {
-//
-//			string glove_input_file = "glove_input_file_out_alpha_" + boost::lexical_cast<std::string>(alpha) + "_eps_" + boost::lexical_cast<std::string>(eps) + "_file_"
-//					+ boost::replace_all_copy(graphInputFile, ".", "-") + ".bin";
-//
-//			cout << "writing to " << glove_input_file << endl;
-//
-//			FILE* glove_input_file_out = fopen(glove_input_file.c_str(), "w");
-//
-////			//c.computeFrequenciesIncludingEdgesTheUltimate(alpha, eps, glove_input_file_out, glove_vocab_file_out, true, false);
-//
-//			c.computeFrequenciesIncludingEdges(alpha, eps, glove_input_file_out, false, false);
-//
-//			fclose(glove_input_file_out);
-//		}
-//	}
 
 void ParameterizedRun::parametrizedUltimateRun(Parameters& param) {
 	param.check();

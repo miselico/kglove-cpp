@@ -22,9 +22,7 @@ class CompactBCV;
 
 //sparse vector representing the approx pagerank
 class BCV: public std::unordered_map<unsigned int, double> {
-//	BCV(BCV &other){
-//
-//	}
+
 public:
 	BCV() {
 
