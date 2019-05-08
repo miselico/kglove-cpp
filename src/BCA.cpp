@@ -6,6 +6,8 @@
  */
 
 #include "BCA.h"
+#include <unordered_set>
+
 #include <iostream>
 #include "MyMaxPriorityQueue.h"
 
@@ -240,6 +242,7 @@ BCV computeBCACached(std::shared_ptr<QuickGraph::LabeledGraph> network, unsigned
 	bcvCache[b_ID] = p;
 	return p;
 }
+
 
 void printBCV(BCV& bcv) {
 	cout << "[";

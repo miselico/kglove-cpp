@@ -6,7 +6,6 @@
  */
 
 //#include "RandomWalkExperiments.h"
-#include "RDF2Co_occurence.h"
 #include "nTripleParser.h"
 
 #include <iostream>
@@ -17,6 +16,8 @@
 #include <boost/algorithm/string/classification.hpp>
 #include <fstream>
 #include <boost/lexical_cast.hpp>
+
+#include "RDF2Co_occurenceComplex.h"
 
 using namespace std;
 
@@ -93,7 +94,7 @@ unordered_map<string, double> readDBPediaPageRanks(string tsvFile) {
 //	return 0;
 //}
 
-int main(int argc, char **argv) {
+int COMPLEXmain(int argc, char **argv) {
 	try {
 		//char const * fileName = "dbpedia_base64_mtr100_mte100-train.nt";
 //		char const * fileName = "freebase_mtr100_mte100-test.nt";
@@ -105,9 +106,9 @@ int main(int argc, char **argv) {
 		RDF2CO::ParameterizedRun::Parameters p;
 		//p.graphs.push_back(std::tuple<string, bool, bool>("368303ALL_MergedMultiline_no-empty-lines_sort-uniq_error-boxer.nt", false, true));
 		p.graphs.push_back(std::tuple<string, bool, bool>(fileName, true, true));
-		UniformWeigher w;
+		weigher::UniformWeigher w;
 		//PushDownWeigherMap w(readDBPediaPageRanks("pagerank_en_2016-04.tsv"), 0.2);
-		p.weighers.push_back(std::pair<GraphWeigher&, GraphWeigher&>(w, w));
+		p.weighers.push_back(std::pair<weigher::GraphWeigher&, weigher::GraphWeigher&>(w, w));
 		p.alphas.push_back(0.3);
 		p.epss.push_back(0.00001);
 		p.normalize.push_back(true);

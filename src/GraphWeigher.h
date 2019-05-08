@@ -12,7 +12,12 @@
 #include "graph/LabeledGraph.h"
 #include <unordered_map>
 
+namespace weigher{
+
 class GraphWeigher {
+
+std::unordered_map<std::string, double> readDBPediaPageRanks(std::string tsvFile);
+
 protected:
 	GraphWeigher() {
 
@@ -179,4 +184,5 @@ public:
 	}
 };
 
+}
 #endif /* GRAPHWEIGHER_HA_ */

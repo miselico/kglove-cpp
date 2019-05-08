@@ -2,10 +2,13 @@
  * RDF2Co_occurence.cpp
  *
  *  Created on: Nov 29, 2016
+ *
+ * This implementation is more performant, but rather convoluted. Use KGloVe.cpp instead.
+ *
  *      Author: cochez
  */
 
-#include "RDF2Co_occurence.h"
+#include "RDF2Co_occurenceComplex.h"
 
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/dynamic_bitset/dynamic_bitset.hpp>
@@ -445,7 +448,7 @@ private:
 
 public:
 
-	Co_occurenceComputer(const string & inputGraphFileName, GraphWeigher& weighingStrategy, const bool removeLiterals) {
+	Co_occurenceComputer(const string & inputGraphFileName, weigher::GraphWeigher& weighingStrategy, const bool removeLiterals) {
 		pair<shared_ptr<QuickGraph::LabeledGraph>, unordered_map<string, unsigned int> > graphAndNodeIndex = n3parser::buildRDFGraph(inputGraphFileName, removeLiterals);
 		_weightedGraph = graphAndNodeIndex.first;
 		reWeigh(weighingStrategy);
@@ -456,7 +459,7 @@ public:
 		_order = BCAOrder::determineBCAcomputeOrder(_weightedGraph);
 	}
 
-	Co_occurenceComputer(const string & inputGraphFileName, string precomputedBCAOrderFile, GraphWeigher& weighingStrategy) {
+	Co_occurenceComputer(const string & inputGraphFileName, string precomputedBCAOrderFile, weigher::GraphWeigher& weighingStrategy) {
 		pair<shared_ptr<QuickGraph::LabeledGraph>, unordered_map<string, unsigned int> > graphAndNodeIndex = n3parser::buildRDFGraphIgnoreLiterals(inputGraphFileName);
 		_weightedGraph = graphAndNodeIndex.first;
 
@@ -469,7 +472,7 @@ public:
 		this->reWeigh(weighingStrategy);
 	}
 
-	void reWeigh(GraphWeigher& weighingStrategy) {
+	void reWeigh(weigher::GraphWeigher& weighingStrategy) {
 		weighingStrategy.weigh(_weightedGraph);
 	}
 
@@ -623,7 +626,7 @@ private:
 
 public:
 
-	Co_occurenceComputer_Ultimate(const string & inputGraphFileName, GraphWeigher& weighingStrategy, GraphWeigher & reverseWeighingStrategy, const bool removeLiterals) {
+	Co_occurenceComputer_Ultimate(const string & inputGraphFileName, weigher::GraphWeigher& weighingStrategy, weigher::GraphWeigher & reverseWeighingStrategy, const bool removeLiterals) {
 		pair<shared_ptr<QuickGraph::LabeledGraph>, unordered_map<string, unsigned int> > graphAndNodeIndex = n3parser::buildRDFGraph(inputGraphFileName, removeLiterals);
 		_weightedGraph = graphAndNodeIndex.first;
 
@@ -657,7 +660,7 @@ public:
 		_orderReverse = BCAOrder::determineBCAcomputeOrder(_weightedReverseGraph);
 	}
 
-	void reWeigh(GraphWeigher& weighingStrategy, GraphWeigher & reverseWeighingStrategy) {
+	void reWeigh(weigher::GraphWeigher& weighingStrategy, weigher::GraphWeigher & reverseWeighingStrategy) {
 		weighingStrategy.weigh(_weightedGraph);
 		reverseWeighingStrategy.weigh(this->_weightedReverseGraph);
 	}
@@ -766,7 +769,7 @@ public:
 ///**
 // * Implementation incomplete!!!
 // */
-//void computeFrequenciesPushBCA(string filename, GraphWeigher& weighingStrategy, FILE *fout) {
+//void computeFrequenciesPushBCA(string filename, weigher::GraphWeigher& weighingStrategy, FILE *fout) {
 //	cerr << "computeFrequenciesPushBCA is not yet completely implemented";
 //	throw "not implemented";
 //
@@ -855,7 +858,7 @@ void performExperiments() {
 //string graphInputFile = "SmallTest9_loop.nt";
 //string graphInputFile = "SmallTest11_simpleLoop.nt";
 	string graphInputFile = "proteinInteraction.nt";
-	UniformWeigher weigher;
+	weigher::UniformWeigher weigher;
 //two options, if the BCA order has been precomputed:
 //string precomputedBCAOrderFile = "BCAComputeOrder.txt";
 //Co_occurenceComputer c(graphInputFile, precomputedBCAOrderFile, weigher);
@@ -911,9 +914,9 @@ void ParameterizedRun::parametrizedUltimateRun(Parameters& param) {
 		}
 		string fileNamePART1 = boost::replace_all_copy(graphInputFile, ".", "_") + "-" + (removeLiterals ? "no_literals" : "with_literals");
 
-		for (std::vector<std::pair<GraphWeigher&, GraphWeigher&>>::const_iterator weighers = param.weighers.begin(); weighers != param.weighers.end(); weighers++) {
-			GraphWeigher & forwardWeigher = weighers->first;
-			GraphWeigher & reverseWeigher = weighers->second;
+		for (std::vector<std::pair<weigher::GraphWeigher&, weigher::GraphWeigher&>>::const_iterator weighers = param.weighers.begin(); weighers != param.weighers.end(); weighers++) {
+			weigher::GraphWeigher & forwardWeigher = weighers->first;
+			weigher::GraphWeigher & reverseWeigher = weighers->second;
 			c.reWeigh(forwardWeigher, reverseWeigher);
 			string fileNamePART2 = fileNamePART1 + "-forward_" + forwardWeigher.getName() + "-reverse_" + reverseWeigher.getName();
 			for (std::vector<double>::const_iterator alphas = param.alphas.cbegin(); alphas != param.alphas.cend(); alphas++) {

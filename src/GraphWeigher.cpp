@@ -11,6 +11,11 @@
 
 #include <string>
 #include <unordered_map>
+#include <fstream>
+#include <boost/algorithm/string/split.hpp>
+#include <boost/algorithm/string/classification.hpp>
+#include <boost/lexical_cast.hpp>
+
 #include "graph/LabeledGraph.h"
 #include "utils.h"
 using namespace std;
@@ -125,11 +130,51 @@ void normalize(std::shared_ptr<QuickGraph::LabeledGraph> unbalanced) {
 
 }
 
-} //and anonymous namespace helpers
-
 void setValueToOne(QuickGraph::LabeledGraph & /* baseGraph */, QuickGraph::Edge & edge) {
 	edge.weight = 1;
 }
+
+} //and anonymous namespace helpers
+
+
+
+
+namespace weigher{
+
+
+unordered_map<string, double> readDBPediaPageRanks(string tsvFile) {
+	unordered_map<string, double> ranks;
+
+	ifstream infile(tsvFile);
+
+	if (!infile.is_open()) {
+		// error! maybe the file doesn't exist.
+		cerr << "Input file " << tsvFile << " not found, exiting!!" << endl;
+		exit(7);
+	}
+
+	string line;
+
+	while (std::getline(infile, line)) {
+		if (line.find_first_not_of(' ') == std::string::npos) {
+			continue;
+		}
+		if (line.find_first_of('#') == 0) {
+			//comment
+			continue;
+		}
+
+		vector<string> SplitVec; // #2: Search for tokens
+		boost::split(SplitVec, line, boost::is_any_of("\t"), boost::token_compress_off);
+		string resource = "<" + SplitVec[0] + ">";
+		double rank = boost::lexical_cast<double>(SplitVec[1]);
+
+		ranks[resource] = rank;
+	}
+	infile.close();
+	return ranks;
+}
+
 
 void UniformWeigher::weigh(std::shared_ptr<QuickGraph::LabeledGraph> baseGraph) const {
 
@@ -283,5 +328,7 @@ void SplitDownWeigher::weigh(std::shared_ptr<QuickGraph::LabeledGraph> baseGraph
 		}
 	}
 	normalize(baseGraph);
+
+}
 
 }
