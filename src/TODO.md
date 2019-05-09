@@ -5,8 +5,9 @@ Main
 * Add command line arguments parsing option
 
 Graph:
-* Add option to add inverse relations to graph
-* Add option to add the reversed edged to graph (keeping edge label as is)
+* Add option to modify graph
+	* Add option to add inverse relations to graph
+	* Add option to add the reversed edged to graph (keeping edge label as is)
 * Add option to save weighted graph
 
 

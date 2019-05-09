@@ -11,7 +11,6 @@
  */
 
 #include <boost/algorithm/string/replace.hpp>
-#include <boost/filesystem/path.hpp>
 #include <boost/dynamic_bitset/dynamic_bitset.hpp>
 #include <boost/flyweight/flyweight.hpp>
 #include <boost/lexical_cast.hpp>
@@ -586,15 +585,14 @@ public:
 
 namespace KGloVe {
 
-void parametrizedUltimateRun(Parameters& param) {
+void parametrizedRun(Parameters& param) {
 	param.check();
 
 	int outputFileNumber = 0;
 	for (std::vector<std::tuple<std::string, bool, bool>>::const_iterator graphs = param.graphs.begin(); graphs != param.graphs.end(); graphs++) {
-		boost::filesystem::path graphInputPath { std::get<0>(*graphs) };
+		string graphInputPath(std::get<0>(*graphs));
 
-
-		string graphFilename_replaced_dots = boost::replace_all_copy(boost::replace_all_copy(graphInputPath.string() , ".", "_"), "/", "_");
+		string graphFilename_replaced_dots = boost::replace_all_copy(boost::replace_all_copy(graphInputPath, ".", "_"), "/", "_");
 
 		string outputPrefix = param.outputPrefix;
 
@@ -654,7 +652,7 @@ void parametrizedUltimateRun(Parameters& param) {
 							if (!glove_input_file_out) {
 								throw "coocurence file could not be written to";
 							}
-							if (includeEdges){
+							if (includeEdges) {
 								c.computeFrequenciesIncludingEdges(alpha, eps, glove_input_file_out, onlyEntities);
 							} else {
 								c.computeFrequenciesNoEdges(alpha, eps, glove_input_file_out, onlyEntities);

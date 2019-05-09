@@ -44,9 +44,10 @@ public:
 	void check() {
 		for (auto graph : graphs) {
 			const std::string graphInputFile = std::get<0>(graph);
-			if (graphInputFile.find('/') != std::string::npos) {
-				throw "Input path cannot contain '/'.";
-			}
+			// This check was needed because paths were not dealth with properly in earlier versions. Should be ok now.
+//			if (graphInputFile.find('/') != std::string::npos) {
+//				throw "Input path cannot contain '/'.";
+//			}
 		}
 
 		if (!(graphs.size() > 0)) {
@@ -64,7 +65,9 @@ public:
 		if (!(onlyEntities.size() == 1 || (onlyEntities.size() == 2 && onlyEntities[0] != onlyEntities[1]))) {
 			throw "onlyEntities can only be [true], [false], [true, false], or [false,true]";
 		}
-
+		if (!(includeEdges.size() == 1 || (includeEdges.size() == 2 && includeEdges[0] != includeEdges[1]))) {
+			throw "onlyEntities can only be [true], [false], [true, false], or [false,true]";
+		}
 	}
 
 };
