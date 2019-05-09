@@ -17,6 +17,7 @@
 
 #include "nTripleParser.h"
 #include "utils.h"
+#include "bloomfilter/bloom_filter.hpp"
 
 using namespace std;
 using namespace boost;
@@ -117,7 +118,7 @@ Triple parsetripleLine(const string & startline) {
 	return Triple(S, P, O);
 }
 
-pair<std::shared_ptr<QuickGraph::LabeledGraph>, unordered_map<string, unsigned int> > buildRDFGraphInternal(const string & filename, bool removeLiteral) {
+pair<std::shared_ptr<QuickGraph::LabeledGraph>, unordered_map<string, unsigned int> > buildRDFGraphInternal(const string & filename, bool removeLiteral, bool skipDupcheck = false) {
 
 //The graph
 	std::shared_ptr<QuickGraph::LabeledGraph> graph(new QuickGraph::LabeledGraph);
@@ -129,11 +130,18 @@ pair<std::shared_ptr<QuickGraph::LabeledGraph>, unordered_map<string, unsigned i
 //temporary keep track of all the nodes
 	std::unordered_map<string, unsigned int> addedNodes;
 
+//bloom filter to quickly determine that a triple is not a duplicate
+	bloom_parameters parameters;
+	//up to 100M triples this works well...
+	parameters.projected_element_count = 100000000;
+	parameters.false_positive_probability = 0.0001;
+	parameters.compute_optimal_parameters();
+	bloom_filter bf(parameters);
+
 	ifstream infile(filename);
 
-	if(!infile.is_open())
-	{
-	  // error! maybe the file doesn't exist.
+	if (!infile.is_open()) {
+		// error! maybe the file doesn't exist.
 		cerr << "Input file " << filename << " not found, exiting!!" << endl;
 		exit(7);
 	}
@@ -193,18 +201,29 @@ pair<std::shared_ptr<QuickGraph::LabeledGraph>, unordered_map<string, unsigned i
 		//add ede if not second time it is defined
 		vector<QuickGraph::Edge> & edges = nodes[subjectIndex].edges;
 		bool twiceDefinedEdge = false;
-		if (twiceDefinedEdgePossible) {
-			for (vector<QuickGraph::Edge>::iterator edge = edges.begin(); edge < edges.end(); edge++) {
-				if (edge->targetIndex == objectIndex) {
-					if (edge->label == values.P()) {
-						twiceDefinedEdge = true;
-						break;
+		if ((!skipDupcheck) && twiceDefinedEdgePossible) {
+			//quick check in bloom filter
+			string tripleString = values.S() + " " + values.P() + " " + values.O();
+			if (bf.contains(tripleString)) {
+				//the element is in the bloomfilter, but might be a false positive..
+				for (vector<QuickGraph::Edge>::iterator edge = edges.begin(); edge < edges.end(); edge++) {
+					if (edge->targetIndex == objectIndex) {
+						if (edge->label == values.P()) {
+							twiceDefinedEdge = true;
+							break;
+						}
 					}
 				}
-			}
+			}// else{
+				//the element was not in the bloomfilter, so it is certainly new
+			//}
 		}
 		if (!twiceDefinedEdge) {
 			edges.emplace_back(values.P(), 0.0, objectIndex);
+			if (!skipDupcheck){
+				string tripleString = values.S() + " " + values.P() + " " + values.O();
+				bf.insert(tripleString);
+			}
 		}
 
 	}
@@ -227,8 +246,6 @@ pair<std::shared_ptr<QuickGraph::LabeledGraph>, unordered_map<string, unsigned i
 pair<std::shared_ptr<QuickGraph::LabeledGraph>, unordered_map<string, unsigned int> > buildRDFGraph(const string & filename, const bool removeLiterals) {
 	return buildRDFGraphInternal(filename, removeLiterals);
 }
-
-
 
 pair<std::shared_ptr<QuickGraph::LabeledGraph>, unordered_map<string, unsigned int> > buildRDFGraphIgnoreLiterals(const string & filename) {
 	return buildRDFGraphInternal(filename, true);
