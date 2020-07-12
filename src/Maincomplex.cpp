@@ -29,36 +29,36 @@ using namespace std;
 //}
 
 unordered_map<string, double> readDBPediaPageRanks(string tsvFile) {
-	unordered_map<string, double> ranks;
+    unordered_map<string, double> ranks;
 
-	ifstream infile(tsvFile);
+    ifstream infile(tsvFile);
 
-	if (!infile.is_open()) {
-		// error! maybe the file doesn't exist.
-		cerr << "Input file " << tsvFile << " not found, exiting!!" << endl;
-		exit(7);
-	}
+    if (!infile.is_open()) {
+        // error! maybe the file doesn't exist.
+        cerr << "Input file " << tsvFile << " not found, exiting!!" << endl;
+        exit(7);
+    }
 
-	string line;
+    string line;
 
-	while (std::getline(infile, line)) {
-		if (line.find_first_not_of(' ') == std::string::npos) {
-			continue;
-		}
-		if (line.find_first_of('#') == 0) {
-			//comment
-			continue;
-		}
+    while (std::getline(infile, line)) {
+        if (line.find_first_not_of(' ') == std::string::npos) {
+            continue;
+        }
+        if (line.find_first_of('#') == 0) {
+            //comment
+            continue;
+        }
 
-		vector<string> SplitVec; // #2: Search for tokens
-		boost::split(SplitVec, line, boost::is_any_of("\t"), boost::token_compress_off);
-		string resource = "<" + SplitVec[0] + ">";
-		double rank = boost::lexical_cast<double>(SplitVec[1]);
+        vector<string> SplitVec; // #2: Search for tokens
+        boost::split(SplitVec, line, boost::is_any_of("\t"), boost::token_compress_off);
+        string resource = "<" + SplitVec[0] + ">";
+        double rank = boost::lexical_cast<double>(SplitVec[1]);
 
-		ranks[resource] = rank;
-	}
-	infile.close();
-	return ranks;
+        ranks[resource] = rank;
+    }
+    infile.close();
+    return ranks;
 }
 
 //int main(int argc, char **argv) {
@@ -95,30 +95,30 @@ unordered_map<string, double> readDBPediaPageRanks(string tsvFile) {
 //}
 
 int COMPLEXmain(int argc, char **argv) {
-	try {
-		//char const * fileName = "dbpedia_base64_mtr100_mte100-train.nt";
+    try {
+        //char const * fileName = "dbpedia_base64_mtr100_mte100-train.nt";
 //		char const * fileName = "freebase_mtr100_mte100-test.nt";
-		char const * fileName = "SmallTest4.nt";
-		if (argc > 1) {
-			fileName = argv[1];
-		}
+        char const * fileName = "SmallTest4.nt";
+        if (argc > 1) {
+            fileName = argv[1];
+        }
 
-		RDF2CO::ParameterizedRun::Parameters p;
-		//p.graphs.push_back(std::tuple<string, bool, bool>("368303ALL_MergedMultiline_no-empty-lines_sort-uniq_error-boxer.nt", false, true));
-		p.graphs.push_back(std::tuple<string, bool, bool>(fileName, true, true));
-		weigher::UniformWeigher w;
-		//PushDownWeigherMap w(readDBPediaPageRanks("pagerank_en_2016-04.tsv"), 0.2);
-		p.weighers.push_back(std::pair<weigher::GraphWeigher&, weigher::GraphWeigher&>(w, w));
-		p.alphas.push_back(0.3);
-		p.epss.push_back(0.00001);
-		p.normalize.push_back(true);
-		p.onlyEntities.push_back(false);
-		RDF2CO::ParameterizedRun::parametrizedUltimateRun(p);
-	} catch (char const* str) {
-		cout << str << endl;
-		throw str;
-	}
-	return 0;
+        RDF2CO::ParameterizedRun::Parameters p;
+        //p.graphs.push_back(std::tuple<string, bool, bool>("368303ALL_MergedMultiline_no-empty-lines_sort-uniq_error-boxer.nt", false, true));
+        p.graphs.push_back(std::tuple<string, bool, bool>(fileName, true, true));
+        weigher::UniformWeigher w;
+        //PushDownWeigherMap w(readDBPediaPageRanks("pagerank_en_2016-04.tsv"), 0.2);
+        p.weighers.push_back(std::pair<weigher::GraphWeigher&, weigher::GraphWeigher&>(w, w));
+        p.alphas.push_back(0.3);
+        p.epss.push_back(0.00001);
+        p.normalize.push_back(true);
+        p.onlyEntities.push_back(false);
+        RDF2CO::ParameterizedRun::parametrizedUltimateRun(p);
+    } catch (char const* str) {
+        cout << str << endl;
+        throw str;
+    }
+    return 0;
 }
 
 //int mainRandomWalk(int argc, char **argv) {

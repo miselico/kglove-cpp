@@ -12,90 +12,90 @@
 #include "graph/LabeledGraph.h"
 #include <unordered_map>
 
-namespace weigher{
+namespace weigher {
 
 class GraphWeigher {
 
-std::unordered_map<std::string, double> readDBPediaPageRanks(std::string tsvFile);
+    std::unordered_map<std::string, double> readDBPediaPageRanks(std::string tsvFile);
 
 protected:
-	GraphWeigher() {
+    GraphWeigher() {
 
-	}
+    }
 
 public:
-	virtual ~GraphWeigher() {
+    virtual ~GraphWeigher() {
 
-	}
-	virtual void weigh(std::shared_ptr<QuickGraph::LabeledGraph>) const = 0;
+    }
+    virtual void weigh(std::shared_ptr<QuickGraph::LabeledGraph>) const = 0;
 
-	virtual std::string getName() const = 0;
+    virtual std::string getName() const = 0;
 };
 
 class UniformWeigher: public GraphWeigher {
 public:
-	virtual void weigh(std::shared_ptr<QuickGraph::LabeledGraph>) const;
+    virtual void weigh(std::shared_ptr<QuickGraph::LabeledGraph>) const;
 
-	virtual std::string getName() const {
-		return "UniformWeigher";
-	}
+    virtual std::string getName() const {
+        return "UniformWeigher";
+    }
 };
 
 class InversePredicateFrequencyWeigher: public GraphWeigher {
 public:
-	virtual void weigh(std::shared_ptr<QuickGraph::LabeledGraph>) const;
+    virtual void weigh(std::shared_ptr<QuickGraph::LabeledGraph>) const;
 
-	virtual std::string getName() const {
-		return "InversePredicateFrequencyWeigher";
-	}
+    virtual std::string getName() const {
+        return "InversePredicateFrequencyWeigher";
+    }
 };
 
 class PredicateFrequencyWeigher: public GraphWeigher {
 public:
-	virtual void weigh(std::shared_ptr<QuickGraph::LabeledGraph>) const;
-	virtual std::string getName() const {
-		return "PredicateFrequencyWeigher";
-	}
+    virtual void weigh(std::shared_ptr<QuickGraph::LabeledGraph>) const;
+    virtual std::string getName() const {
+        return "PredicateFrequencyWeigher";
+    }
 };
 
 class ObjectFrequencyWeigher: public GraphWeigher {
 public:
-	virtual void weigh(std::shared_ptr<QuickGraph::LabeledGraph>) const;
-	virtual std::string getName() const {
-		return "ObjectFrequencyWeigher";
-	}
+    virtual void weigh(std::shared_ptr<QuickGraph::LabeledGraph>) const;
+    virtual std::string getName() const {
+        return "ObjectFrequencyWeigher";
+    }
 };
 
 class InverseObjectFrequencyWeigher: public GraphWeigher {
 public:
-	virtual void weigh(std::shared_ptr<QuickGraph::LabeledGraph>) const;
-	virtual std::string getName() const {
-		return "InverseObjectFrequencyWeigher";
-	}
+    virtual void weigh(std::shared_ptr<QuickGraph::LabeledGraph>) const;
+    virtual std::string getName() const {
+        return "InverseObjectFrequencyWeigher";
+    }
 };
 
 class PredicateObjectFrequencyWeigher: public GraphWeigher {
 public:
-	virtual void weigh(std::shared_ptr<QuickGraph::LabeledGraph>) const;
-	virtual std::string getName() const {
-		return "PredicateObjectFrequencyWeigher";
-	}
+    virtual void weigh(std::shared_ptr<QuickGraph::LabeledGraph>) const;
+    virtual std::string getName() const {
+        return "PredicateObjectFrequencyWeigher";
+    }
 };
 
 class InversePredicateObjectFrequencyWeigher: public GraphWeigher {
 public:
-	virtual void weigh(std::shared_ptr<QuickGraph::LabeledGraph>) const;
-	virtual std::string getName() const {
-		return "InversePredicateObjectFrequencyWeigher";
-	}
+    virtual void weigh(std::shared_ptr<QuickGraph::LabeledGraph>) const;
+    virtual std::string getName() const {
+        return "InversePredicateObjectFrequencyWeigher";
+    }
 };
 
 class InverseObjectFrequencyWeigherSplitDown: public GraphWeigher {
 public:
-	virtual void weigh(std::shared_ptr<QuickGraph::LabeledGraph>) const;
-	virtual std::string getName() const {
-		return "InverseObjectFrequencyWeigherSplitDown";
-	}
+    virtual void weigh(std::shared_ptr<QuickGraph::LabeledGraph>) const;
+    virtual std::string getName() const {
+        return "InverseObjectFrequencyWeigherSplitDown";
+    }
 };
 
 /**
@@ -109,21 +109,21 @@ public:
  *
  */
 class PushDownWeigher: public GraphWeigher {
-	const std::vector<double> nodeWeights;
+    const std::vector<double> nodeWeights;
 
 public:
-	/**
-	 * All weights must be in the vector
-	 */
-	PushDownWeigher(const std::vector<double> & nodeWeights) :
-			nodeWeights(nodeWeights) {
-	}
+    /**
+     * All weights must be in the vector
+     */
+    PushDownWeigher(const std::vector<double> & nodeWeights) :
+        nodeWeights(nodeWeights) {
+    }
 
-	virtual void weigh(std::shared_ptr<QuickGraph::LabeledGraph>) const;
+    virtual void weigh(std::shared_ptr<QuickGraph::LabeledGraph>) const;
 
-	virtual std::string getName() const {
-		return "Pushdownweigher";
-	}
+    virtual std::string getName() const {
+        return "Pushdownweigher";
+    }
 };
 
 /**
@@ -137,22 +137,22 @@ public:
  *
  */
 class PushDownWeigherMap: public GraphWeigher {
-	const std::unordered_map<std::string, double> nodeWeights;
-	const double defaultWeight;
+    const std::unordered_map<std::string, double> nodeWeights;
+    const double defaultWeight;
 
 public:
-	/**
-	 * All weights must be in the vector
-	 */
-	PushDownWeigherMap(const std::unordered_map<std::string, double> & nodeWeights, double defaultWeight) :
-			nodeWeights(nodeWeights), defaultWeight(defaultWeight) {
-	}
+    /**
+     * All weights must be in the vector
+     */
+    PushDownWeigherMap(const std::unordered_map<std::string, double> & nodeWeights, double defaultWeight) :
+        nodeWeights(nodeWeights), defaultWeight(defaultWeight) {
+    }
 
-	virtual void weigh(std::shared_ptr<QuickGraph::LabeledGraph>) const;
+    virtual void weigh(std::shared_ptr<QuickGraph::LabeledGraph>) const;
 
-	virtual std::string getName() const {
-		return "PushdownweigherMap";
-	}
+    virtual std::string getName() const {
+        return "PushdownweigherMap";
+    }
 };
 
 
@@ -167,21 +167,21 @@ public:
  *
  */
 class SplitDownWeigher: public GraphWeigher {
-	const std::vector<double> nodeWeights;
+    const std::vector<double> nodeWeights;
 
 public:
-	/**
-	 * All weights must be in the vector
-	 */
-	SplitDownWeigher(const std::vector<double> & nodeWeights) :
-			nodeWeights(nodeWeights) {
-	}
+    /**
+     * All weights must be in the vector
+     */
+    SplitDownWeigher(const std::vector<double> & nodeWeights) :
+        nodeWeights(nodeWeights) {
+    }
 
-	virtual void weigh(std::shared_ptr<QuickGraph::LabeledGraph>) const;
+    virtual void weigh(std::shared_ptr<QuickGraph::LabeledGraph>) const;
 
-	virtual std::string getName() const {
-		return "Splitdownweigher";
-	}
+    virtual std::string getName() const {
+        return "Splitdownweigher";
+    }
 };
 
 }

@@ -14,123 +14,123 @@
 using namespace std;
 
 BCV::BCV(CompactBCV & from) {
-	for (std::vector<std::pair<unsigned int, double>>::const_iterator iter = from.values.begin(); iter != from.values.begin(); iter++) {
-		this->fixPaint(iter->first, iter->second);
-	}
+    for (std::vector<std::pair<unsigned int, double>>::const_iterator iter = from.values.begin(); iter != from.values.begin(); iter++) {
+        this->fixPaint(iter->first, iter->second);
+    }
 }
 
 void BCV::fixPaint(unsigned int ID, double amount) {
-	double startamount = 0;
-	std::unordered_map<unsigned int, double>::iterator it = this->find(ID);
-	if (it != this->end()) {
-		startamount = it->second;
-		double newAmount = startamount + amount;
-		this->at(ID) = newAmount;
-	} else {
+    double startamount = 0;
+    std::unordered_map<unsigned int, double>::iterator it = this->find(ID);
+    if (it != this->end()) {
+        startamount = it->second;
+        double newAmount = startamount + amount;
+        this->at(ID) = newAmount;
+    } else {
 #ifdef NDEBUG
-		this->emplace(ID, amount);
+        this->emplace(ID, amount);
 #else
-		auto ret = this->emplace(ID, amount);
-		assert(ret.second);
+        auto ret = this->emplace(ID, amount);
+        assert(ret.second);
 #endif
-	}
+    }
 }
 
 string BCV::toStringWithOnlyNodeLabels(const std::shared_ptr<QuickGraph::LabeledGraph> network) {
-	string s = "{";
-	string separator = "";
+    string s = "{";
+    string separator = "";
 
-	for (unordered_map<unsigned int, double>::iterator iter = this->begin(); iter != this->end(); iter++) {
-		s += separator;
-		const int k = iter->first;
-		string entity = network->nodes[k].label;
-		s += entity;
-		s += " = ";
-		const double v = iter->second;
-		s += v;
-		separator = ", ";
-	}
+    for (unordered_map<unsigned int, double>::iterator iter = this->begin(); iter != this->end(); iter++) {
+        s += separator;
+        const int k = iter->first;
+        string entity = network->nodes[k].label;
+        s += entity;
+        s += " = ";
+        const double v = iter->second;
+        s += v;
+        separator = ", ";
+    }
 
-	s.append("}");
-	return s;
+    s.append("}");
+    return s;
 }
 
 void BCV::removeEntry(unsigned int ID) {
-	this->erase(ID);
+    this->erase(ID);
 }
 
 void BCV::normalizeInPlace() {
-	double totalSum = 0.0;
+    double totalSum = 0.0;
 
-	for (unordered_map<unsigned int, double>::iterator iter = this->begin(); iter != this->end(); iter++) {
-		totalSum += iter->second;
-	}
-	for (unordered_map<unsigned int, double>::iterator iter = this->begin(); iter != this->end(); iter++) {
-		double value = iter->second;
-		double scaled = value / totalSum;
-		this->emplace(iter->first, scaled);
-	}
+    for (unordered_map<unsigned int, double>::iterator iter = this->begin(); iter != this->end(); iter++) {
+        totalSum += iter->second;
+    }
+    for (unordered_map<unsigned int, double>::iterator iter = this->begin(); iter != this->end(); iter++) {
+        double value = iter->second;
+        double scaled = value / totalSum;
+        this->emplace(iter->first, scaled);
+    }
 }
 
 void BCV::add(const BCV & other) {
-	for (unordered_map<unsigned int, double>::const_iterator iter = other.cbegin(); iter != other.cend(); iter++) {
-		unsigned int ID = iter->first;
-		double addition = iter->second;
-		BCV::iterator ownValue = this->find(ID);
-		if (ownValue == this->end()) {
-			this->emplace(ID, addition);
-		} else {
-			this->emplace(ID, ownValue->second + addition);
-		}
+    for (unordered_map<unsigned int, double>::const_iterator iter = other.cbegin(); iter != other.cend(); iter++) {
+        unsigned int ID = iter->first;
+        double addition = iter->second;
+        BCV::iterator ownValue = this->find(ID);
+        if (ownValue == this->end()) {
+            this->emplace(ID, addition);
+        } else {
+            this->emplace(ID, ownValue->second + addition);
+        }
 
-	}
+    }
 }
 
 void BCV::add(const CompactBCV & other) {
-	for (vector<pair<unsigned int, double>>::const_iterator iter = other.values.cbegin(); iter != other.values.cend(); iter++) {
-		unsigned int ID = iter->first;
-		double addition = iter->second;
-		BCV::iterator ownValue = this->find(ID);
-		if (ownValue == this->end()) {
-			this->emplace(ID, addition);
-		} else {
-			this->emplace(ID, ownValue->second + addition);
-		}
-	}
+    for (vector<pair<unsigned int, double>>::const_iterator iter = other.values.cbegin(); iter != other.values.cend(); iter++) {
+        unsigned int ID = iter->first;
+        double addition = iter->second;
+        BCV::iterator ownValue = this->find(ID);
+        if (ownValue == this->end()) {
+            this->emplace(ID, addition);
+        } else {
+            this->emplace(ID, ownValue->second + addition);
+        }
+    }
 }
 
 CompactBCV::CompactBCV(const BCV & bcv) {
-	for (std::unordered_map<unsigned int, double>::const_iterator iter = bcv.cbegin(); iter != bcv.cend(); iter++) {
-		values.emplace_back(iter->first, iter->second);
-	}
-	this->values.shrink_to_fit();
+    for (std::unordered_map<unsigned int, double>::const_iterator iter = bcv.cbegin(); iter != bcv.cend(); iter++) {
+        values.emplace_back(iter->first, iter->second);
+    }
+    this->values.shrink_to_fit();
 }
 
 
 class BCAQueue: public MyMaxPriorityQueue<unsigned int> {
 public:
-	void addPaintTo(unsigned int toID, double paint) {
-		double current = this->GetPriority(toID);
-		this->SetPriority(toID, current + paint);
-	}
+    void addPaintTo(unsigned int toID, double paint) {
+        double current = this->GetPriority(toID);
+        this->SetPriority(toID, current + paint);
+    }
 
-	void addPaintToIfMoreAsEps(unsigned int toID, double paint, double eps) {
-		double current = this->GetPriority(toID);
-		double sum = current + paint;
-		if (sum > eps) {
-			this->SetPriority(toID, sum);
-		}
-	}
+    void addPaintToIfMoreAsEps(unsigned int toID, double paint, double eps) {
+        double current = this->GetPriority(toID);
+        double sum = current + paint;
+        if (sum > eps) {
+            this->SetPriority(toID, sum);
+        }
+    }
 
-	bool empty() {
-		return this->IsEmpty();
-	}
+    bool empty() {
+        return this->IsEmpty();
+    }
 
-	pair<unsigned int, double> pop() {
-		double paint = this->GetMaxPriority();
-		unsigned int ID = this->PopMax();
-		return pair<unsigned int, double>(ID, paint);
-	}
+    pair<unsigned int, double> pop() {
+        double paint = this->GetMaxPriority();
+        unsigned int ID = this->PopMax();
+        return pair<unsigned int, double>(ID, paint);
+    }
 
 };
 
@@ -138,27 +138,27 @@ public:
  * Compute the bookmarking coloring algorithm (≃ personalized page rank) between node b_ID and all other nodes in the graph. Using teleportation parameter alpha and cut-off value eps.
  */
 BCV computeBCA(std::shared_ptr<QuickGraph::LabeledGraph> network, unsigned int b_ID, double alpha, double eps) {
-	BCAQueue Q;
-	BCV p;
-	Q.addPaintTo(b_ID, 1.0);
-	while (!Q.empty()) {
-		pair<int, double> element = Q.pop();
-		int i = element.first;
-		double w = element.second;
-		p.fixPaint(i, alpha * w);
-		if (w < eps) {
-			continue;
-		}
-		std::vector<QuickGraph::Edge> & edges = network->nodes[i].edges;
+    BCAQueue Q;
+    BCV p;
+    Q.addPaintTo(b_ID, 1.0);
+    while (!Q.empty()) {
+        pair<int, double> element = Q.pop();
+        int i = element.first;
+        double w = element.second;
+        p.fixPaint(i, alpha * w);
+        if (w < eps) {
+            continue;
+        }
+        std::vector<QuickGraph::Edge> & edges = network->nodes[i].edges;
 
-		for (auto edge = edges.begin(); edge != edges.end(); edge++) {
-			int j = edge->targetIndex;
-			double edgeWeight = edge->weight;
-			double paintToJ = (1.0 - alpha) * w * edgeWeight;
-			Q.addPaintTo(j, paintToJ);
-		}
-	}
-	return p;
+        for (auto edge = edges.begin(); edge != edges.end(); edge++) {
+            int j = edge->targetIndex;
+            double edgeWeight = edge->weight;
+            double paintToJ = (1.0 - alpha) * w * edgeWeight;
+            Q.addPaintTo(j, paintToJ);
+        }
+    }
+    return p;
 
 }
 
@@ -171,139 +171,139 @@ BCV computeBCA(std::shared_ptr<QuickGraph::LabeledGraph> network, unsigned int b
  *
  */
 BCV computeBCAIncludingEdges(std::shared_ptr<QuickGraph::LabeledGraph> network, unsigned int b_ID, double alpha, double eps, const std::unordered_map<flyString, unsigned int> & predIDs) {
-	BCAQueue Q;
-	BCV p;
-	Q.addPaintTo(b_ID, 1.0);
+    BCAQueue Q;
+    BCV p;
+    Q.addPaintTo(b_ID, 1.0);
 
-	while (!Q.empty()) {
-		pair<int, double> element = Q.pop();
-		int i = element.first;
-		double w = element.second;
-		p.fixPaint(i, alpha * w);
-		if (w < eps) {
-			continue;
-		}
+    while (!Q.empty()) {
+        pair<int, double> element = Q.pop();
+        int i = element.first;
+        double w = element.second;
+        p.fixPaint(i, alpha * w);
+        if (w < eps) {
+            continue;
+        }
 
-		std::vector<QuickGraph::Edge> & edges = network->nodes[i].edges;
+        std::vector<QuickGraph::Edge> & edges = network->nodes[i].edges;
 
-		for (auto edge = edges.begin(); edge != edges.end(); edge++) {
-			int j = edge->targetIndex;
-			double edgeWeight = edge->weight;
-			double paintToJ = (1.0 - alpha) * w * edgeWeight;
+        for (auto edge = edges.begin(); edge != edges.end(); edge++) {
+            int j = edge->targetIndex;
+            double edgeWeight = edge->weight;
+            double paintToJ = (1.0 - alpha) * w * edgeWeight;
 
-			boost::flyweight<string> outEdgeLabel = edge->label;
-			int outEdgeBCVID = predIDs.at(outEdgeLabel);
-			//note: this was fixed. Not all paint going trough should be added to the edge. Only the fraction which will stay in the destination.
-			p.fixPaint(outEdgeBCVID, paintToJ * alpha);
-			//p.fixPaint(outEdgeBCVID, paintToJ);
+            boost::flyweight<string> outEdgeLabel = edge->label;
+            int outEdgeBCVID = predIDs.at(outEdgeLabel);
+            //note: this was fixed. Not all paint going trough should be added to the edge. Only the fraction which will stay in the destination.
+            p.fixPaint(outEdgeBCVID, paintToJ * alpha);
+            //p.fixPaint(outEdgeBCVID, paintToJ);
 
-			Q.addPaintTo(j, paintToJ);
-		}
-	}
-	return p;
+            Q.addPaintTo(j, paintToJ);
+        }
+    }
+    return p;
 }
 
 BCV computeBCACached(std::shared_ptr<QuickGraph::LabeledGraph> network, unsigned int b_ID, double alpha, double eps, std::unordered_map<unsigned int, BCV> & bcvCache) {
-	BCAQueue Q;
-	BCV p;
-	Q.addPaintTo(b_ID, 1.0);
-	while (!Q.empty()) {
-		pair<int, double> element = Q.pop();
-		int i = element.first;
-		double w = element.second;
-		std::unordered_map<unsigned int, BCV>::iterator precomputedI = bcvCache.find(i);
-		if (precomputedI != bcvCache.end()) {
-			BCV & precomputed = precomputedI->second;
-			//TODO double check this:
-			for (unordered_map<unsigned int, double>::iterator iter = precomputed.begin(); iter != precomputed.end(); iter++) {
-				double scaled = iter->second * w;
-				//Here the algorithm might have a slight difference with the original version.
-				//The problem is that we cannot know the threshold directly because of the weights in the graph, this seems to be an okay estimation
-				if (scaled > (eps * alpha)) {
-					p.fixPaint(iter->first, scaled);
-				}
-			}
-		} else {
-			p.fixPaint(i, alpha * w);
-			if (w < eps) {
-				continue;
-			}
-			std::vector<QuickGraph::Edge> & edges = network->nodes[i].edges;
+    BCAQueue Q;
+    BCV p;
+    Q.addPaintTo(b_ID, 1.0);
+    while (!Q.empty()) {
+        pair<int, double> element = Q.pop();
+        int i = element.first;
+        double w = element.second;
+        std::unordered_map<unsigned int, BCV>::iterator precomputedI = bcvCache.find(i);
+        if (precomputedI != bcvCache.end()) {
+            BCV & precomputed = precomputedI->second;
+            //TODO double check this:
+            for (unordered_map<unsigned int, double>::iterator iter = precomputed.begin(); iter != precomputed.end(); iter++) {
+                double scaled = iter->second * w;
+                //Here the algorithm might have a slight difference with the original version.
+                //The problem is that we cannot know the threshold directly because of the weights in the graph, this seems to be an okay estimation
+                if (scaled > (eps * alpha)) {
+                    p.fixPaint(iter->first, scaled);
+                }
+            }
+        } else {
+            p.fixPaint(i, alpha * w);
+            if (w < eps) {
+                continue;
+            }
+            std::vector<QuickGraph::Edge> & edges = network->nodes[i].edges;
 
-			for (auto edge = edges.begin(); edge != edges.end(); edge++) {
-				int j = edge->targetIndex;
-				double edgeWeight = edge->weight;
-				double paintToJ = (1.0 - alpha) * w * edgeWeight;
-				Q.addPaintTo(j, paintToJ);
-			}
-		}
+            for (auto edge = edges.begin(); edge != edges.end(); edge++) {
+                int j = edge->targetIndex;
+                double edgeWeight = edge->weight;
+                double paintToJ = (1.0 - alpha) * w * edgeWeight;
+                Q.addPaintTo(j, paintToJ);
+            }
+        }
 
-	}
-	bcvCache[b_ID] = p;
-	return p;
+    }
+    bcvCache[b_ID] = p;
+    return p;
 }
 
 
 void printBCV(BCV& bcv) {
-	cout << "[";
-	string sep = "";
-	for (std::unordered_map<unsigned int, double>::const_iterator iter = bcv.cbegin(); iter != bcv.cend(); iter++) {
-		cout << sep << iter->first << "," << iter->second;
-		sep = " | ";
-	}
-	cout << "]" << endl;
+    cout << "[";
+    string sep = "";
+    for (std::unordered_map<unsigned int, double>::const_iterator iter = bcv.cbegin(); iter != bcv.cend(); iter++) {
+        cout << sep << iter->first << "," << iter->second;
+        sep = " | ";
+    }
+    cout << "]" << endl;
 }
 
 shared_ptr<CompactBCV> computeBCAIncludingEdgesCached(std::shared_ptr<QuickGraph::LabeledGraph> network, unsigned int b_ID, double alpha, double eps,
-		const std::unordered_map<flyString, unsigned int> & predIDs, vector<std::shared_ptr<CompactBCV>> & bcvCache) {
-	BCAQueue Q;
-	BCV p;
-	Q.addPaintTo(b_ID, 1.0);
+        const std::unordered_map<flyString, unsigned int> & predIDs, vector<std::shared_ptr<CompactBCV>> & bcvCache) {
+    BCAQueue Q;
+    BCV p;
+    Q.addPaintTo(b_ID, 1.0);
 
-	while (!Q.empty()) {
-		//printBCV(p);
-		pair<unsigned int, double> element = Q.pop();
-		unsigned int i = element.first;
-		double w = element.second;
+    while (!Q.empty()) {
+        //printBCV(p);
+        pair<unsigned int, double> element = Q.pop();
+        unsigned int i = element.first;
+        double w = element.second;
 
-		std::shared_ptr<CompactBCV> cached = bcvCache[i];
+        std::shared_ptr<CompactBCV> cached = bcvCache[i];
 
-		//TODO check whether non-filled elements indeed test false.
-		if (cached) {
-			CompactBCV * precomputed = cached.get();
-			//TODO double check this:
-			for (vector<pair<unsigned int, double>>::iterator iter = precomputed->values.begin(); iter != precomputed->values.end(); iter++) {
-				double scaled = iter->second * w;
-				//Here the algorithm might have a slight difference with the original version.
-				//The problem is that we cannot know the threshold directly because of the weights in the graph, this seems to be an okay estimation
-				if (scaled > (eps * alpha)) {
-					p.fixPaint(iter->first, scaled);
-				}
-			}
-		} else {
-			p.fixPaint(i, alpha * w);
-			if (w < eps) {
-				continue;
-			}
-			std::vector<QuickGraph::Edge> & edges = network->nodes[i].edges;
+        //TODO check whether non-filled elements indeed test false.
+        if (cached) {
+            CompactBCV * precomputed = cached.get();
+            //TODO double check this:
+            for (vector<pair<unsigned int, double>>::iterator iter = precomputed->values.begin(); iter != precomputed->values.end(); iter++) {
+                double scaled = iter->second * w;
+                //Here the algorithm might have a slight difference with the original version.
+                //The problem is that we cannot know the threshold directly because of the weights in the graph, this seems to be an okay estimation
+                if (scaled > (eps * alpha)) {
+                    p.fixPaint(iter->first, scaled);
+                }
+            }
+        } else {
+            p.fixPaint(i, alpha * w);
+            if (w < eps) {
+                continue;
+            }
+            std::vector<QuickGraph::Edge> & edges = network->nodes[i].edges;
 
-			for (auto edge = edges.begin(); edge != edges.end(); edge++) {
-				int j = edge->targetIndex;
-				double edgeWeight = edge->weight;
-				double paintToJ = (1.0 - alpha) * w * edgeWeight;
+            for (auto edge = edges.begin(); edge != edges.end(); edge++) {
+                int j = edge->targetIndex;
+                double edgeWeight = edge->weight;
+                double paintToJ = (1.0 - alpha) * w * edgeWeight;
 
-				flyString & outEdgeLabel = edge->label;
-				int outEdgeBCVID = predIDs.at(outEdgeLabel);
-				//note: this was fixed. Not all paint going trough should be added to the edge. Only the fraction which will stay in the destination.
-				p.fixPaint(outEdgeBCVID, paintToJ * alpha);
-				//p.fixPaint(outEdgeBCVID, paintToJ);
-				Q.addPaintTo(j, paintToJ);
+                flyString & outEdgeLabel = edge->label;
+                int outEdgeBCVID = predIDs.at(outEdgeLabel);
+                //note: this was fixed. Not all paint going trough should be added to the edge. Only the fraction which will stay in the destination.
+                p.fixPaint(outEdgeBCVID, paintToJ * alpha);
+                //p.fixPaint(outEdgeBCVID, paintToJ);
+                Q.addPaintTo(j, paintToJ);
 
-			}
-		}
-	}
-	bcvCache[b_ID] = shared_ptr<CompactBCV>(new CompactBCV(p));				//   [b_ID] = p;
-	return bcvCache[b_ID];
+            }
+        }
+    }
+    bcvCache[b_ID] = shared_ptr<CompactBCV>(new CompactBCV(p));				//   [b_ID] = p;
+    return bcvCache[b_ID];
 }
 
 //From here on implementation of pushed Bookmark Coloring Algorithm

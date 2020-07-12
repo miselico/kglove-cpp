@@ -15,10 +15,10 @@ static std::string OWL_THING("<http://www.w3.org/2002/07/owl#Thing>");
 
 struct pairhash {
 public:
-	template<typename T, typename U>
-	std::size_t operator()(const std::pair<T, U> &x) const {
-		return std::hash<T>()(x.first) ^ std::hash<U>()(x.second);
-	}
+    template<typename T, typename U>
+    std::size_t operator()(const std::pair<T, U> &x) const {
+        return std::hash<T>()(x.first) ^ std::hash<U>()(x.second);
+    }
 };
 
 
@@ -28,17 +28,17 @@ public:
 #include <ctime>
 
 inline std::string currentTime() {
-	time_t rawtime;
-	struct tm * timeinfo;
-	char buffer[80];
+    time_t rawtime;
+    struct tm * timeinfo;
+    char buffer[80];
 
-	time(&rawtime);
-	timeinfo = localtime(&rawtime);
+    time(&rawtime);
+    timeinfo = localtime(&rawtime);
 
-	strftime(buffer, sizeof(buffer), "%Y-%m-%d %I:%M:%S ", timeinfo);
-	std::string str(buffer);
+    strftime(buffer, sizeof(buffer), "%Y-%m-%d %I:%M:%S ", timeinfo);
+    std::string str(buffer);
 
-	return str;
+    return str;
 
 }
 
