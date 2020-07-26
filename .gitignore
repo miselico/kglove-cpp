@@ -1,3 +1,4 @@
-/Debug/
-/Optimized/
+Debug/
+Optimized/
 .settings/
+output/

@@ -131,8 +131,7 @@ pair<std::shared_ptr<QuickGraph::LabeledGraph>, unordered_map<string, unsigned i
 
     ifstream infile(filename);
 
-    if(!infile.is_open())
-    {
+    if(!infile.is_open()) {
         // error! maybe the file doesn't exist.
         cerr << "Input file " << filename << " not found, exiting!!" << endl;
         exit(7);
@@ -164,7 +163,8 @@ pair<std::shared_ptr<QuickGraph::LabeledGraph>, unordered_map<string, unsigned i
         bool twiceDefinedEdgePossible = true;
 
         int subjectIndex;
-        {   //scoping for name clashes
+        {
+            //scoping for name clashes
             string subject = values.S();
             auto resS = addedNodes.find(subject);
             if (resS == addedNodes.end()) {
@@ -177,7 +177,8 @@ pair<std::shared_ptr<QuickGraph::LabeledGraph>, unordered_map<string, unsigned i
             }
         }
         unsigned int objectIndex;
-        {   //scoping for name clashes
+        {
+            //scoping for name clashes
             string object = values.O();
             auto resO = addedNodes.find(object);
 

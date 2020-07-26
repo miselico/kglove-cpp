@@ -682,7 +682,8 @@ public:
         //TODO : check whether this size is correct
         vector<std::shared_ptr<CompactBCV>> bcvForwardCache(_order.size());
 
-        {   //filling the forward cache
+        {
+            //filling the forward cache
             int counter = 0;
             for (vector<unsigned int>::iterator iter = _order.begin(); iter < _order.end(); iter++) {
                 const unsigned int focusWordGraphID = *iter;
@@ -700,7 +701,8 @@ public:
                 }
             }
         }
-        {   //filling the backward cache and writing comined outcomes to disk. This simultaniously empties the forwardCache to save memory.
+        {
+            //filling the backward cache and writing comined outcomes to disk. This simultaniously empties the forwardCache to save memory.
             vector<std::shared_ptr<CompactBCV>> bcvBackwardCache(_order.size());
             int backwardCounter = 0;
             for (vector<unsigned int>::iterator iter = _orderReverse.begin(); iter < _orderReverse.end(); iter++) {

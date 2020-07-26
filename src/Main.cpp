@@ -12,16 +12,13 @@
 #include "KGloVe.h"
 
 
-int main(int argc, char **argv) {
+int main(int argc, char *argv[]) {
     try {
-        char const * fileName = "../testInput/SmallTest2.nt";
-        if (argc > 1) {
-            fileName = argv[1];
-        }
+        const std::string input_file = (argc > 1)? argv[1] : "./testInput/SmallTest2.nt";
 
         KGloVe::Parameters p;
         //p.graphs.push_back(std::tuple<string, bool, bool>("368303ALL_MergedMultiline_no-empty-lines_sort-uniq_error-boxer.nt", false, true));
-        p.graphs.push_back(std::tuple<std::string, bool, bool>(fileName, true, true));
+        p.graphs.push_back(std::tuple<std::string, bool, bool>(input_file, true, true));
         weigher::UniformWeigher w;
         //PushDownWeigherMap w(readDBPediaPageRanks("pagerank_en_2016-04.tsv"), 0.2);
         p.weighers.push_back(&w);
@@ -33,9 +30,9 @@ int main(int argc, char **argv) {
 
         KGloVe::parametrizedRun(p);
 
-    } catch (char const* str) {
-        std::cout << str << std::endl;
-        throw str;
+    } catch (const std::exception& e) {
+        std::cout << e.what() << std::endl;
+        throw e;
     }
-    return 0;
+    return EXIT_SUCCESS;
 }
