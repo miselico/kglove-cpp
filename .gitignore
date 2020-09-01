@@ -1,4 +1,7 @@
-Debug/
+.vscode/
 Optimized/
 .settings/
 output/
+*RDFConverter
+*.d
+*.o
